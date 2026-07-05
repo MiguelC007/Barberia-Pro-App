@@ -32,7 +32,7 @@ export default function PaymentPage() {
         qrNote: state.paymentSettings.qrNote,
         editableOnlyByOwner: true
       });
-      setMessage("Datos de pago actualizados.");
+      setMessage("Datos de pago actualizados correctamente.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "No se pudieron actualizar los datos de pago.");
     }
@@ -43,12 +43,12 @@ export default function PaymentPage() {
       createPaymentProof({
         clientName: user?.name || "Cliente",
         amount,
-        proofText: proofText || "Pago marcado como enviado manualmente.",
+        proofText: proofText || "Comprobante enviado por el cliente.",
         mediaReferences: proofMedia
       });
       setProofText("");
       setProofMedia([]);
-      setMessage("Comprobante pendiente de confirmacion por el dueno.");
+      setMessage("Comprobante enviado correctamente. Queda pendiente de validación.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "No se pudo registrar el comprobante.");
     }
@@ -64,7 +64,7 @@ export default function PaymentPage() {
         <div className="section-heading">
           <div>
             <h2>Pago por QR</h2>
-            <p>Pago manual. El cliente transfiere y envia comprobante por WhatsApp.</p>
+            <p>Transfiere, adjunta tu comprobante y recibe confirmación desde administración.</p>
           </div>
         </div>
 
@@ -83,7 +83,7 @@ export default function PaymentPage() {
             <input type="number" min={1} value={amount} onChange={(event) => setAmount(Number(event.target.value))} />
           </label>
           <label>
-            Nota de comprobante
+            Nota del comprobante
             <input value={proofText} onChange={(event) => setProofText(event.target.value)} placeholder="Ej. transferencia BAC 1234" />
           </label>
         </div>
@@ -92,8 +92,8 @@ export default function PaymentPage() {
         <MediaReferenceList items={proofMedia} title="Comprobante adjunto" />
 
         <div className="actions">
-          <button className="btn primary" onClick={sendProof}>Ya pague</button>
-          <a className="btn blue" href={whatsappLink(state.paymentSettings.whatsapp, `Hola, envio comprobante de pago para ${state.business.appName}.`)} target="_blank" rel="noreferrer">
+          <button className="btn primary" onClick={sendProof}>Ya realicé el pago</button>
+          <a className="btn blue" href={whatsappLink(state.paymentSettings.whatsapp, `Hola, envío comprobante de pago para ${state.business.appName}.`)} target="_blank" rel="noreferrer">
             <MessageCircle size={17} />
             Enviar por WhatsApp
           </a>
@@ -105,14 +105,14 @@ export default function PaymentPage() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <h2>Configurar QR de pago</h2>
-            <p>Solo dueno/admin o Super Admin tecnico puede editar estos datos.</p>
+            <h2>Configurar datos bancarios</h2>
+            <p>Acceso privado para administración del negocio.</p>
           </div>
         </div>
 
         <RoleGuard
           allowed={["owner", "super_admin"]}
-          fallback={<div className="alert danger">No tenes permiso para modificar los datos bancarios.</div>}
+          fallback={<div className="alert danger">No tienes permiso para modificar los datos bancarios.</div>}
         >
           <div className="form-grid">
             <label>
@@ -124,11 +124,11 @@ export default function PaymentPage() {
               <input value={accountHolder} onChange={(event) => setAccountHolder(event.target.value)} />
             </label>
             <label>
-              Numero de cuenta
+              Número de cuenta
               <input value={accountNumber} onChange={(event) => setAccountNumber(event.target.value)} />
             </label>
             <label>
-              WhatsApp comprobantes
+              WhatsApp de comprobantes
               <input value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} />
             </label>
           </div>

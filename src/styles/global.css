@@ -2157,3 +2157,230 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+.service-card-pro {
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(19, 19, 24, 0.98), rgba(11, 11, 15, 0.96));
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  border-radius: 24px;
+}
+
+.service-card-media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+}
+
+.service-card-media img,
+.service-admin-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.service-card-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: rgba(15, 15, 20, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.service-card-body {
+  padding: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.service-card-body strong {
+  font-size: 1.05rem;
+}
+
+.service-card-body p {
+  min-height: 48px;
+}
+
+.ticket-code-line,
+.queue-ticket-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  color: #fdba74;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.queue-ticket-code {
+  margin-top: 4px;
+}
+
+.tv-ticket-row p,
+.tv-appointment-row p {
+  margin: 0 0 6px;
+}
+
+.tv-ticket-row span,
+.tv-appointment-row span {
+  color: #fdba74;
+  font-size: 0.95rem;
+}
+
+.service-admin-card {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.service-admin-preview {
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+}
+
+.service-admin-content {
+  display: grid;
+  gap: 12px;
+}
+
+.tv-screen {
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(249, 115, 22, 0.2), transparent 30%),
+    linear-gradient(180deg, #0f0f14 0%, #09090b 100%);
+  color: #fff7ed;
+}
+
+.tv-header,
+.tv-grid,
+.tv-current-meta,
+.tv-panel-head,
+.tv-ticket-row,
+.tv-appointment-row {
+  display: grid;
+}
+
+.tv-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.tv-header h1 {
+  font-size: clamp(2rem, 4vw, 3.8rem);
+  margin: 10px 0 6px;
+}
+
+.tv-clock {
+  text-align: right;
+}
+
+.tv-clock strong {
+  display: block;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.tv-grid {
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 20px;
+}
+
+.tv-current-card,
+.tv-panel {
+  background: rgba(17, 24, 39, 0.72);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 28px;
+  padding: 24px;
+  backdrop-filter: blur(8px);
+}
+
+.tv-current-card h2 {
+  font-size: clamp(2.3rem, 5vw, 5rem);
+  margin: 12px 0;
+}
+
+.tv-current-card p {
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
+}
+
+.tv-section-label {
+  color: #fdba74;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tv-current-meta,
+.tv-ticket-list,
+.tv-appointment-list {
+  gap: 14px;
+}
+
+.tv-current-meta {
+  margin-top: 20px;
+}
+
+.tv-panel-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.tv-ticket-row,
+.tv-appointment-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 18px;
+}
+
+.tv-ticket-row strong,
+.tv-ticket-side strong {
+  font-size: 1.1rem;
+}
+
+.tv-ticket-side {
+  text-align: right;
+}
+
+.tv-empty {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fed7aa;
+}
+
+@media (max-width: 1080px) {
+  .tv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .service-admin-card {
+    grid-template-columns: 1fr;
+  }
+
+  .tv-screen {
+    padding: 16px;
+  }
+
+  .tv-header {
+    grid-template-columns: 1fr;
+  }
+
+  .tv-clock {
+    text-align: left;
+  }
+}

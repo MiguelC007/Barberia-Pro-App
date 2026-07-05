@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Code2, Copy, RotateCcw } from "lucide-react";
+import { Copy, Settings2, Wrench } from "lucide-react";
 import { useAppData } from "../services/localStore";
 import { exportDataJson, resetDemoData } from "../services/settingsService";
 import { RoleBadge } from "../components/RoleBadge";
@@ -10,12 +10,12 @@ export default function SuperAdminPanel() {
 
   function reset() {
     resetDemoData();
-    setMessage("Datos demo reiniciados.");
+    setMessage("Entorno local restaurado correctamente.");
   }
 
   async function copyJson() {
     await navigator.clipboard.writeText(exportDataJson());
-    setMessage("JSON copiado al portapapeles.");
+    setMessage("Exportación JSON copiada al portapapeles.");
   }
 
   return (
@@ -23,18 +23,18 @@ export default function SuperAdminPanel() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <h2>Super Admin técnico</h2>
-            <p>Este panel es para vos como creador/programador. No es para el dueño de la barbería.</p>
+            <h2>Superadministración técnica</h2>
+            <p>Soporte, mantenimiento, exportación y configuración avanzada del sistema.</p>
           </div>
-          <Code2 />
+          <Settings2 />
         </div>
 
         <div className="alert info">
-          Acceso total técnico: soporte, reset demo, exportación, revisión de usuarios y futuras herramientas de mantenimiento.
+          Acceso reservado para mantenimiento técnico, respaldo operativo y soporte de implementación.
         </div>
 
         <div className="actions">
-          <button className="btn danger" onClick={reset}><RotateCcw size={17} />Reset demo</button>
+          <button className="btn danger" onClick={reset}><Wrench size={17} />Restaurar entorno local</button>
           <button className="btn blue" onClick={copyJson}><Copy size={17} />Exportar JSON</button>
         </div>
 
@@ -44,8 +44,8 @@ export default function SuperAdminPanel() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <h2>Usuarios demo</h2>
-            <p>En producción estarían en Firebase Auth + Firestore.</p>
+            <h2>Usuarios del sistema</h2>
+            <p>Perfiles disponibles en la base actual del negocio.</p>
           </div>
         </div>
 

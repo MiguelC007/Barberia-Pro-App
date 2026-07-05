@@ -12,12 +12,15 @@ import PaymentPage from "../pages/PaymentPage";
 import QueuePage from "../pages/QueuePage";
 import SuperAdminPanel from "../pages/SuperAdminPanel";
 import TicketEntryPage from "../pages/TicketEntryPage";
+import TvScreenPage from "../pages/TvScreenPage";
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/turno" element={<TicketEntryPage />} />
+      <Route path="/tv" element={<TvScreenPage />} />
+      <Route path="/pantalla" element={<Navigate to="/tv" replace />} />
       <Route path="/entrada" element={<Navigate to="/turno" replace />} />
 
       <Route element={<ProtectedRoute />}>

@@ -1,10 +1,36 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Lock, UserRound } from "lucide-react";
+import { CalendarCheck, CreditCard, Lock, QrCode, Scissors, ShieldCheck, Smartphone, UserRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { useAppData } from "../services/localStore";
-import { isUsingDemoAuth } from "../services/authService";
+import "../styles/login-premium.css";
+
+const benefits = [
+  { label: "Turnos por QR", icon: QrCode },
+  { label: "Citas inteligentes", icon: CalendarCheck },
+  { label: "Pago por QR", icon: CreditCard },
+  { label: "App instalable", icon: Smartphone }
+];
+
+const accessTypes = [
+  {
+    title: "Cliente",
+    text: "Puede tomar turno, reservar cita, enviar referencias y consultar su proceso."
+  },
+  {
+    title: "Barbero",
+    text: "Acceso privado para atender turnos, revisar citas y dar seguimiento."
+  },
+  {
+    title: "Dueño administrador",
+    text: "Control del negocio, pagos, servicios, branding y operación diaria."
+  },
+  {
+    title: "Superadministración",
+    text: "Soporte técnico, mantenimiento y configuración avanzada del sistema."
+  }
+];
 
 export default function Login() {
   const state = useAppData();
@@ -17,20 +43,25 @@ export default function Login() {
   const [clientPhone, setClientPhone] = useState("");
   const [error, setError] = useState("");
 
+  const appName = state.business.appName || "Spencer Barber Shop";
+
   if (!isReady) return <LoadingScreen />;
   if (user) return <Navigate to="/" replace />;
 
-  async function handleStaffLogin() {
+  async function handleStaffLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     try {
       setError("");
       await login({ email, password });
       navigate("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo iniciar sesion.");
+      setError(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
     }
   }
 
-  function handleClientLogin() {
+  function handleClientLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     loginClient(clientName || "Cliente", clientPhone);
     navigate("/");
   }
@@ -41,120 +72,142 @@ export default function Login() {
   }
 
   return (
-    <div className="login-screen">
-      <section className="login-hero">
-        <span className="badge badge-warning">App privada por barberia</span>
-        <h1>Login por roles para {state.business.appName}.</h1>
-        <p>
-          El cliente puede usar la app como invitado. El barbero tiene acceso limitado. El dueno administra su barberia.
-          El Super Admin tecnico controla todo.
-        </p>
+    <main className="login-premium-screen">
+      <section className="login-premium-hero" aria-label="Presentación de Spencer Barber Shop">
+        <div className="login-premium-glow" aria-hidden="true" />
 
-        <div className="hero-stats">
-          <div>
-            <strong>1</strong>
-            <span>Barberia</span>
+        <div className="login-premium-brand-row">
+          <div className="login-premium-logo">
+            <Scissors size={28} />
           </div>
           <div>
-            <strong>Turnos</strong>
-            <span>Entrada</span>
+            <span>Spencer Barber Shop</span>
+            <strong>Sistema privado</strong>
+          </div>
+        </div>
+
+        <div className="login-premium-copy">
+          <span className="login-premium-eyebrow">Gestión profesional para barbería</span>
+          <h1>{appName}</h1>
+          <p className="login-premium-lead">
+            Gestiona turnos, citas, pagos y clientes desde una sola plataforma ordenada.
+          </p>
+          <p className="login-premium-text">
+            Tus clientes pueden tomar turno por QR, reservar citas, enviar referencias de corte y pagar por QR. El equipo administra todo desde un panel privado y seguro.
+          </p>
+        </div>
+
+        <div className="login-benefits-grid" aria-label="Beneficios principales">
+          {benefits.map(({ label, icon: Icon }) => (
+            <article className="login-benefit-card" key={label}>
+              <Icon size={19} aria-hidden="true" />
+              <span>{label}</span>
+            </article>
+          ))}
+        </div>
+
+        <div className="login-proof-card">
+          <div>
+            <strong>1</strong>
+            <span>barbería</span>
           </div>
           <div>
             <strong>QR</strong>
-            <span>Entrada/Pago</span>
+            <span>ingreso/pago</span>
           </div>
           <div>
             <strong>PWA</strong>
-            <span>Instalable</span>
+            <span>instalable</span>
           </div>
         </div>
       </section>
 
-      <section className="login-card">
-        <div className="section-heading">
+      <section className="login-premium-panel" aria-label="Acceso al sistema">
+        <div className="login-panel-header">
           <div>
-            <h2>Acceso</h2>
-            <p>
-              {isUsingDemoAuth()
-                ? "Modo demo/localStorage activo. Firebase queda preparado."
-                : "Firebase configurado para Spencer Barber Shop. La demo local sigue disponible para presentaciones."}
-            </p>
+            <span className="login-secure-badge">
+              <ShieldCheck size={15} /> Acceso privado
+            </span>
+            <h2>Entrar al sistema</h2>
+            <p>Ingreso seguro para Spencer Barber Shop.</p>
           </div>
-          <Lock />
+          <div className="login-lock-bubble" aria-hidden="true">
+            <Lock />
+          </div>
         </div>
 
-        <div className="switcher">
-          <button className={mode === "staff" ? "active" : ""} onClick={() => setMode("staff")}>
-            Staff/Admin
+        <div className="login-trust-note">
+          <ShieldCheck size={18} aria-hidden="true" />
+          <span>Turnos, citas y datos operativos protegidos con acceso por rol.</span>
+        </div>
+
+        <div className="login-mode-switcher" role="tablist" aria-label="Tipo de acceso">
+          <button type="button" className={mode === "staff" ? "active" : ""} onClick={() => setMode("staff")} aria-selected={mode === "staff"}>
+            Dueño / Barbero
           </button>
-          <button className={mode === "client" ? "active" : ""} onClick={() => setMode("client")}>
-            Cliente
+          <button type="button" className={mode === "client" ? "active" : ""} onClick={() => setMode("client")} aria-selected={mode === "client"}>
+            Cliente / Invitado
           </button>
         </div>
 
         {mode === "staff" ? (
-          <div className="form-card">
+          <form className="login-form-card" onSubmit={handleStaffLogin}>
+            <div className="login-form-intro">
+              <h3>Panel privado del negocio</h3>
+              <p>Ingresa con tu correo autorizado para administrar la operación de la barbería.</p>
+            </div>
+
             <label>
               Correo
-              <input
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="username"
-                placeholder="correo@spencerbarber.com"
-              />
+              <input value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" inputMode="email" placeholder="correo@spencerbarber.com" required />
             </label>
+
             <label>
-              Contrasena
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
-                placeholder="Tu contrasena privada"
-              />
+              Contraseña
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" placeholder="Tu contraseña privada" required />
             </label>
 
             {error && <div className="alert danger">{error}</div>}
 
-            <button className="btn primary full" onClick={handleStaffLogin}>
-              Entrar
+            <button className="btn primary full login-submit-button" type="submit">
+              Entrar de forma segura
             </button>
-
-            <div className="demo-box">
-              <strong>Cuentas demo</strong>
-              <p>Super Admin: super@barberhn.com / 123456</p>
-              <p>Dueno/Admin: spencer@spencerbarber.com / 123456</p>
-            </div>
-          </div>
+          </form>
         ) : (
-          <div className="form-card">
+          <form className="login-form-card" onSubmit={handleClientLogin}>
+            <div className="login-form-intro">
+              <h3>Entrada rápida para clientes</h3>
+              <p>El cliente puede continuar como invitado o dejar sus datos para recibir mejor seguimiento.</p>
+            </div>
+
             <label>
               Nombre
-              <input
-                value={clientName}
-                onChange={(event) => setClientName(event.target.value)}
-                placeholder="Ej. Carlos Mejia"
-              />
-            </label>
-            <label>
-              WhatsApp opcional
-              <input
-                value={clientPhone}
-                onChange={(event) => setClientPhone(event.target.value)}
-                placeholder="50400000000"
-              />
+              <input value={clientName} onChange={(event) => setClientName(event.target.value)} placeholder="Ej. Carlos Mejía" autoComplete="name" />
             </label>
 
-            <button className="btn primary full" onClick={handleClientLogin}>
-              <UserRound size={18} />
-              Entrar como cliente
+            <label>
+              WhatsApp opcional
+              <input value={clientPhone} onChange={(event) => setClientPhone(event.target.value)} placeholder="50400000000" autoComplete="tel" inputMode="tel" />
+            </label>
+
+            <button className="btn primary full login-submit-button" type="submit">
+              <UserRound size={18} /> Entrar como cliente
             </button>
-            <button className="btn ghost full" onClick={handleGuest}>
+            <button className="btn ghost full" type="button" onClick={handleGuest}>
               Continuar como invitado
             </button>
-          </div>
+          </form>
         )}
+
+        <div className="login-access-grid">
+          {accessTypes.map((item) => (
+            <article key={item.title}>
+              <strong>{item.title}</strong>
+              <span>{item.text}</span>
+            </article>
+          ))}
+        </div>
       </section>
-    </div>
+    </main>
   );
 }

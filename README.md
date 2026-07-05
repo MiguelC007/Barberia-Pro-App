@@ -1,85 +1,42 @@
 # Spencer Barber Shop App
 
-Proyecto base para una plataforma web/PWA privada de una sola barberia.
-
-Esta app no es marketplace. El cliente no ve otras barberias. Cada barberia debe tener su propia app, configuracion, datos, Firebase y deploy.
+Aplicación web y PWA privada para la operación de Spencer Barber Shop. El proyecto está orientado a un solo negocio, con roles, tickets por QR, citas, pagos y paneles operativos listos para evolucionar a producción con Firebase.
 
 ## Stack
 
-- React
+- React 19
 - TypeScript
 - Vite
-- Firebase preparado
-- Firebase Auth preparado
-- Firestore preparado
-- Firebase Hosting preparado
-- PWA con manifest y service worker
+- Firebase Auth
+- Cloud Firestore en tiempo real
+- Firebase Storage preparado
+- Firebase Hosting
 - React Router DOM
-- QR con `qrcode`
-- CSS propio moderno y responsivo
+- `qrcode`
+- CSS propio responsive y mobile first
 
-## Funciones incluidas
+## Funcionalidades principales
 
-- Login por roles
-- Cliente invitado
-- Super Admin tecnico
-- Dueno/Admin
-- Barbero limitado
-- Cliente
-- Vista cliente
-- Turnos de entrada con ticket unico
-- QR publico en `/turno`
-- Ticket automatico sin duplicar por dispositivo
-- Ticket manual para clientes sin celular
-- Timeline con posicion, espera y hora estimada
-- Citas con disponibilidad segun turnos activos y agenda existente
-- Chatbot basico para agendar
-- Pago QR manual
-- Panel de barbero
-- Panel de dueno
-- Panel Super Admin
-- PWA instalable
-- Modo demo/localStorage si Firebase no esta configurado
+- Autenticación por roles: cliente, invitado, barbero, dueño y superadministración.
+- Tickets de atención por QR con código correlativo diario tipo `SB-YYYYMMDD-001`.
+- Prevención de tickets duplicados por dispositivo, cliente o teléfono mientras exista un ticket activo.
+- Seguimiento en tiempo real de posición, estado y espera estimada del ticket.
+- Operación de cola para barbero y dueño: tomar siguiente, llamar, atender, finalizar, saltar y cancelar.
+- Pantalla pública `/tv` para monitor interno de la barbería.
+- Agenda de citas con horarios sugeridos según cola y disponibilidad.
+- Pago por QR con envío de comprobante y validación manual.
+- Servicios con imagen uniforme y estructura lista para Firebase Storage.
+- Fallback local con `localStorage` para desarrollo si Firebase no está configurado.
 
-## Credenciales demo
-
-```txt
-Super Admin: super@barberhn.com / 123456
-Dueno/Admin: spencer@spencerbarber.com / 123456
-```
-
-El cliente puede entrar con nombre y WhatsApp, continuar como invitado o escanear el QR publico para recibir ticket.
-
-## Documentacion del proyecto
-
-- [HISTORY.md](./HISTORY.md): historial de versiones y cambios.
-- [ROADMAP.md](./ROADMAP.md): plan de fases para convertir la demo en producto operativo.
-- [CREDENTIALS.md](./CREDENTIALS.md): credenciales demo y referencias de accesos.
-- [FIREBASE_SETUP.md](./FIREBASE_SETUP.md): paso a paso para conectar Firebase en el piloto de Spencer.
-- [MULTI_BARBERSHOP_ARCHITECTURE.md](./MULTI_BARBERSHOP_ARCHITECTURE.md): base arquitectonica para escalar a varias barberias.
-- [scripts/README.md](./scripts/README.md): flujo del seed automatico para crear Auth + Firestore desde codigo.
-
-Cada tanda de cambios debe cerrar con una entrada nueva en `HISTORY.md`.
-No guardes secretos reales en `CREDENTIALS.md`; usa `.env` o `CREDENTIALS.local.md`.
-
-## Comandos
+## Instalación
 
 ```bash
 npm install
-npm run dev
-npm run build
-npm run preview
 ```
 
-## Configuracion Firebase
+## Variables de entorno
 
-Copia `.env.example` a `.env` y pega tus claves:
-
-```bash
-cp .env.example .env
-```
-
-Variables:
+Copia `.env.example` a `.env` y completa tus credenciales de Firebase:
 
 ```env
 VITE_FIREBASE_API_KEY=
@@ -90,41 +47,27 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 ```
 
-Si no configuras Firebase, la app funciona en modo demo con `localStorage`.
-
-## Seed automatico Firebase
-
-Para evitar crear usuarios y documentos a mano en Firebase Console:
+## Desarrollo
 
 ```bash
-npm run seed:firebase
+npm run dev
 ```
 
-Antes de ejecutarlo necesitas:
+Si Firebase no está configurado, la app usará almacenamiento local como respaldo de desarrollo. En producción se recomienda usar siempre Firebase para autenticación, Firestore y Storage.
 
-- `scripts/serviceAccountKey.json`
-- `scripts/seed.local.json`
+## Validación
 
-El seed crea o reutiliza:
+```bash
+npm run lint
+npm run build
+```
 
-- super admin Miguel
-- owner Spencer
-- `users/{uid}`
-- `settings/business`
-- `settings/payment`
-- `barbers/barber_spencer`
-- servicios iniciales
-- `analytics/daily`
-
-Spencer queda como dueno y unico barbero inicial del negocio.
-
-## Estructura de datos sugerida en Firestore
+## Estructura Firestore recomendada
 
 ```txt
 settings/
   business
   payment
-  theme
 
 users/
   userId
@@ -143,18 +86,21 @@ appointments/
 
 payments/
   paymentId
-
-analytics/
-  daily
 ```
 
-## Deploy Firebase Hosting
+## Deploy
 
 ```bash
 npm run build
-firebase login
-firebase init hosting
 firebase deploy
 ```
 
-El archivo `firebase.json` ya esta preparado para publicar `dist`.
+## Documentación relacionada
+
+- [HISTORY.md](./HISTORY.md)
+- [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)
+- [MULTI_BARBERSHOP_ARCHITECTURE.md](./MULTI_BARBERSHOP_ARCHITECTURE.md)
+- [ROADMAP.md](./ROADMAP.md)
+- [scripts/README.md](./scripts/README.md)
+
+No publiques credenciales reales, cuentas de prueba ni secretos en este repositorio.

@@ -80,7 +80,7 @@ service cloud.firestore {
     }
 
     function validService(data) {
-      return hasOnly(data, ["id", "name", "description", "price", "duration", "icon", "active"]) &&
+      return hasOnly(data, ["id", "name", "description", "price", "duration", "icon", "imageUrl", "imageStoragePath", "active"]) &&
         validPublicText(data.name, 120) &&
         data.description is string &&
         data.price is number &&
@@ -88,6 +88,8 @@ service cloud.firestore {
         data.duration is number &&
         data.duration > 0 &&
         data.icon is string &&
+        validOptionalText(data, "imageUrl", 2000) &&
+        validOptionalText(data, "imageStoragePath", 300) &&
         data.active is bool;
     }
 
@@ -101,6 +103,7 @@ service cloud.firestore {
         "clientName",
         "clientPhone",
         "whatsapp",
+        "deviceId",
         "source",
         "serviceId",
         "serviceName",
@@ -134,6 +137,7 @@ service cloud.firestore {
         data.waitStartedAt is number &&
         validOptionalText(data, "clientPhone", 40) &&
         validOptionalText(data, "whatsapp", 40) &&
+        validOptionalText(data, "deviceId", 120) &&
         validOptionalText(data, "note", 300) &&
         validOptionalText(data, "notes", 300) &&
         (!("ticketCode" in data) || data.ticketCode is string) &&
@@ -176,7 +180,7 @@ service cloud.firestore {
     }
 
     function validPayment(data) {
-      return hasOnly(data, ["id", "clientName", "amount", "status", "proofText", "createdAt", "confirmedAt"]) &&
+      return hasOnly(data, ["id", "clientName", "amount", "status", "proofText", "createdAt", "confirmedAt", "mediaReferences"]) &&
         validPublicText(data.clientName, 120) &&
         data.amount is number &&
         data.amount > 0 &&

@@ -1,6 +1,6 @@
-export function formatElapsed(startedAt?: number | null): string {
+export function formatElapsed(startedAt?: number | null, now = Date.now()): string {
   if (!startedAt) return "00:00";
-  const seconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  const seconds = Math.max(0, Math.floor((now - startedAt) / 1000));
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
   const secs = (seconds % 60).toString().padStart(2, "0");
   return `${minutes}:${secs}`;
@@ -8,10 +8,10 @@ export function formatElapsed(startedAt?: number | null): string {
 
 export function minutesToText(minutes: number): string {
   const safe = Math.max(0, Math.round(minutes));
-  if (safe < 60) return `${safe}m`;
+  if (safe < 60) return `${safe} min`;
   const hours = Math.floor(safe / 60);
   const rest = safe % 60;
-  return `${hours}h${rest ? ` ${rest}m` : ""}`;
+  return `${hours} h${rest ? ` ${rest} min` : ""}`;
 }
 
 export function timeLabel(timestamp?: number | null): string {

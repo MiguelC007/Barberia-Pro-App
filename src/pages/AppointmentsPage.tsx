@@ -88,7 +88,7 @@ export default function AppointmentsPage() {
         <div className="section-heading">
           <div>
             <h2>Agendar cita</h2>
-            <p>Reserva un horario sin chocar con los turnos presentes.</p>
+            <p>Reserva un horario sin chocar con turnos activos ni citas ya programadas.</p>
           </div>
         </div>
 
@@ -112,7 +112,7 @@ export default function AppointmentsPage() {
           <label>
             Barbero
             <select value={barberId} onChange={(event) => setBarberId(event.target.value)}>
-              <option value="">Cualquier disponible</option>
+              <option value="">Cualquiera disponible</option>
               {state.barbers.filter((barber) => barber.active).map((barber) => (
                 <option value={barber.id} key={barber.id}>{barber.name}</option>
               ))}
@@ -131,10 +131,8 @@ export default function AppointmentsPage() {
         <section className="availability-box">
           <div className="section-heading">
             <div>
-              <h3>Horarios disponibles sugeridos</h3>
-              <p>
-                {selectedService ? `${selectedService.name} dura aprox. ${selectedService.duration} min.` : "Selecciona un servicio."}
-              </p>
+              <h3>Horarios sugeridos</h3>
+              <p>{selectedService ? `${selectedService.name} dura aprox. ${selectedService.duration} min.` : "Selecciona un servicio."}</p>
             </div>
             <CalendarCheck />
           </div>
@@ -145,12 +143,12 @@ export default function AppointmentsPage() {
                 <button className="slot-button" key={`${slot.barberId}-${slot.time}`} onClick={() => pickSlot(slot)}>
                   <strong>{slot.time}</strong>
                   <span>{slot.barberName}</span>
-                  <small>{slot.peopleBefore} antes - {minutesToText(slot.waitMinutes)}</small>
+                  <small>{slot.peopleBefore} antes · {minutesToText(slot.waitMinutes)}</small>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="empty-state">No hay horarios disponibles para esta seleccion.</div>
+            <div className="empty-state">No hay horarios disponibles para esta selección.</div>
           )}
         </section>
 
@@ -166,7 +164,7 @@ export default function AppointmentsPage() {
         <div className="section-heading">
           <div>
             <h2>Citas visibles</h2>
-            <p>Dueno ve todas, barbero solo las asignadas, cliente las propias.</p>
+            <p>Administración ve todas, barbero solo las asignadas y cliente únicamente las propias.</p>
           </div>
         </div>
 
@@ -176,7 +174,7 @@ export default function AppointmentsPage() {
               <AppointmentCard appointment={appointment} state={state} key={appointment.id} />
             ))
           ) : (
-            <EmptyState title="No hay citas visibles" text="Agenda una cita para verla aqui." />
+            <EmptyState title="No hay citas visibles" text="Agenda una cita para verla aquí." />
           )}
         </div>
       </section>

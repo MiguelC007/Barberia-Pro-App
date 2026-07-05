@@ -56,6 +56,8 @@ export interface Service {
   price: number;
   duration: number;
   icon: string;
+  imageUrl?: string;
+  imageStoragePath?: string;
   active: boolean;
 }
 
@@ -68,6 +70,7 @@ export interface QueueItem {
   clientName: string;
   clientPhone?: string;
   whatsapp?: string;
+  deviceId?: string;
   source?: QueueSource;
   serviceId: string;
   serviceName?: string;

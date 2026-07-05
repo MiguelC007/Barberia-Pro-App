@@ -27,6 +27,63 @@ Cada vez que se haga una tanda de cambios, agrega una entrada nueva arriba de la
 - `npm run build`
 ```
 
+## v1.5.1 - 2026-07-05
+
+### Agregado
+- Hook `useLiveNow()` para refrescar tiempos visibles sin recargar la página.
+- Helper `src/utils/tickets.ts` para presentar nombre y código de ticket de forma consistente y profesional.
+
+### Cambiado
+- Home, lista de espera, ticket público, panel de barbero y pantalla TV ahora recalculan tiempos en vivo.
+- El código del ticket ahora aparece debajo del nombre del cliente y, si no hay nombre, la interfaz prioriza el código y la posición del turno.
+- La pantalla `/tv` muestra ticket actual, barbero asignado, tiempo en servicio, próximos tickets y citas del día con lectura más clara desde lejos.
+- Las tarjetas de servicios usan placeholder premium dinámico y proporciones uniformes.
+- El lenguaje visible se ajustó hacia “lista de espera”, “orden de llegada”, “atención por turno” y “tiempo estimado en vivo”.
+
+### Validación
+- `npm run lint`
+- `npm run build`
+
+## v1.5.0 - 2026-07-05
+
+### Agregado
+- Pantalla pública en tiempo real en `/tv` y alias `/pantalla` para mostrar ticket actual, próximos tickets y citas del día.
+- Soporte de imagen por servicio con `imageUrl` e `imageStoragePath`, además de placeholder visual profesional.
+- Reglas de Storage y ampliación de reglas Firestore para tickets, pagos e imágenes.
+- Sincronización híbrida Firebase + respaldo local para estado principal, con suscripciones en tiempo real.
+
+### Cambiado
+- Ticketera QR profesionalizada con correlativo diario `SB-YYYYMMDD-001`, control de duplicados por dispositivo/cliente y seguimiento en vivo.
+- Operación de cola extendida para barbero/dueño: tomar siguiente, llamar, atender, finalizar, saltar o cancelar.
+- Paneles de dueño, barbero, cliente, pagos, citas y superadministración con textos profesionales, tildes y permisos más claros.
+- Servicios presentados con tarjetas visuales premium y panel administrativo listo para gestionar imágenes.
+- README actualizado a instalación y despliegue profesional sin credenciales visibles.
+
+### Corregido
+- Se eliminaron textos visibles de demostración y mensajes de desarrollo en pantallas principales.
+- Se corrigieron múltiples textos con acentos, ñ y redacción orientada a producción.
+
+### Validación
+- `npm run lint`
+- `npm run build`
+
+## v1.4.2 - 2026-07-05
+
+### Agregado
+- Nuevo archivo `src/styles/login-premium.css` para dar estilo premium y aislado a la pantalla de Login.
+- Seccion comercial en Login para presentar beneficios: turnos por QR, citas inteligentes, pago por QR y PWA instalable.
+- Tarjetas de acceso para cliente, barbero, dueno/admin y superadmin.
+
+### Cambiado
+- Login redisenado para que Spencer Barber Shop se vea como app privada profesional y no como pantalla demo/dev.
+- Los accesos demo ya no aparecen visibles de entrada; quedan detras de un boton discreto para desarrollo o modo demo.
+- README ya no muestra credenciales demo publicamente.
+- Los formularios de staff y cliente ahora usan submit para permitir Enter sin romper AuthContext, roles ni rutas protegidas.
+
+### Validacion
+- Pendiente ejecutar en local: `npm run lint`
+- Pendiente ejecutar en local: `npm run build`
+
 ## v1.4.1 - 2026-07-04
 
 ### Agregado

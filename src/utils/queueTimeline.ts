@@ -61,7 +61,7 @@ export function ticketStatusLabel(status: QueueStatus): string {
     waiting: "En espera",
     next: "Siguiente",
     called: "Siguiente",
-    in_service: "En atencion",
+    in_service: "En atención",
     completed: "Finalizado",
     done: "Finalizado",
     skipped: "Saltado",
@@ -114,8 +114,7 @@ export function nextDailySequence(queue: QueueItem[], now = Date.now()): number 
 }
 
 export function generateTicketCode(prefix: string, sequence: number, now = Date.now()): string {
-  const random = Math.random().toString(36).replace(/[^a-z0-9]/gi, "").slice(2, 5).toUpperCase().padEnd(3, "X");
-  return `${prefix}-${dateKey(now)}-${String(sequence).padStart(3, "0")}-${random}`;
+  return `${prefix}-${dateKey(now)}-${String(sequence).padStart(3, "0")}`;
 }
 
 function appointmentStartMs(appointment: Appointment): number {

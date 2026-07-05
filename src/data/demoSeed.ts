@@ -3,6 +3,17 @@ import { BARBERSHOP_CONFIG } from "../config/barbershop.config";
 
 const now = Date.now();
 
+const serviceImages = {
+  classic:
+    "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=1200&q=80",
+  fade:
+    "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=1200&q=80",
+  beard:
+    "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1200&q=80",
+  detail:
+    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80"
+};
+
 export const demoUsers: Array<AppUser & { password: string }> = [
   {
     id: "user_super",
@@ -32,15 +43,15 @@ export const initialAppState: AppState = {
   business: {
     ...BARBERSHOP_CONFIG,
     logoText: "SB",
-    hours: "Lun-Sab 9:00 AM - 8:00 PM",
-    publicMessage: "Toma tu turno al llegar, escanea el QR y mira tu tiempo estimado en vivo."
+    hours: "Lun-Sáb 9:00 a. m. - 8:00 p. m.",
+    publicMessage: "Escanea el QR al llegar, recibe tu ticket y sigue tu turno en tiempo real."
   },
   paymentSettings: {
-    bankName: "Banco Demo",
+    bankName: "Banco configurado",
     accountHolder: "Spencer Barber Shop",
     accountNumberMasked: "****0000",
     whatsapp: "50400000000",
-    qrNote: "Pago manual por transferencia. Enviar comprobante por WhatsApp.",
+    qrNote: "Pago por transferencia. Comparte tu comprobante por WhatsApp para validación.",
     editableOnlyByOwner: true
   },
   users: demoUsers.map(({ password: _password, ...user }) => user),
@@ -56,45 +67,53 @@ export const initialAppState: AppState = {
       currentClientName: null,
       serviceStartedAt: null,
       doneToday: 0,
-      specialties: ["Fade", "Corte clasico", "Corte + Barba"],
+      specialties: ["Fade", "Corte clásico", "Corte + barba"],
       active: true
     }
   ],
   services: [
     {
       id: "service_classic",
-      name: "Corte clasico",
-      description: "Corte limpio y profesional para diario.",
+      name: "Corte clásico",
+      description: "Corte limpio y profesional para el día a día.",
       price: 120,
       duration: 25,
       icon: "SB",
+      imageUrl: serviceImages.classic,
+      imageStoragePath: "",
       active: true
     },
     {
       id: "service_fade",
       name: "Fade / Degradado",
-      description: "Degradado moderno con acabado limpio.",
+      description: "Degradado moderno con acabado preciso y prolijo.",
       price: 150,
       duration: 35,
       icon: "SB",
+      imageUrl: serviceImages.fade,
+      imageStoragePath: "",
       active: true
     },
     {
       id: "service_beard",
-      name: "Corte + Barba",
-      description: "Corte completo con perfilado de barba.",
+      name: "Corte + barba",
+      description: "Atención completa con perfilado de barba incluido.",
       price: 200,
       duration: 45,
       icon: "SB",
+      imageUrl: serviceImages.beard,
+      imageStoragePath: "",
       active: true
     },
     {
       id: "service_design",
-      name: "Cejas / Diseno",
-      description: "Detalles rapidos y diseno basico.",
+      name: "Cejas / Diseño",
+      description: "Detalles rápidos y definición estética profesional.",
       price: 80,
       duration: 15,
       icon: "SB",
+      imageUrl: serviceImages.detail,
+      imageStoragePath: "",
       active: true
     }
   ],
