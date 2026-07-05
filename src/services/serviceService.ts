@@ -4,6 +4,7 @@ import { createId } from "../utils/id";
 import { isClosedTicketStatus, normalizeTicketStatus } from "../utils/queueTimeline";
 
 export function addService(input: {
+  id?: string;
   name: string;
   description: string;
   price: number;
@@ -11,7 +12,7 @@ export function addService(input: {
   icon: string;
   imageUrl?: string;
   imageStoragePath?: string;
-}): void {
+}): string {
   if (!input.name.trim()) {
     throw new Error("El nombre del servicio es obligatorio.");
   }
@@ -23,7 +24,7 @@ export function addService(input: {
   }
 
   const service: Service = {
-    id: createId("service"),
+    id: input.id || createId("service"),
     name: input.name.trim(),
     description: input.description.trim(),
     price: input.price,
@@ -38,6 +39,8 @@ export function addService(input: {
     ...state,
     services: [...state.services, service]
   }));
+
+  return service.id;
 }
 
 export function updateService(serviceId: string, updates: Partial<Omit<Service, "id">>): void {
