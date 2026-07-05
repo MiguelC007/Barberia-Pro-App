@@ -47,7 +47,7 @@ export function Layout() {
           <div className="logo-mark">{state.business.logoText}</div>
           <div>
             <h1>{state.business.appName}</h1>
-            <p>App privada · Una sola barbería · Datos aislados</p>
+            <p>Turnos, citas y pagos en un solo lugar</p>
           </div>
         </div>
 
