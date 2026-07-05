@@ -10,10 +10,10 @@ import {
 import type { AppState } from "../types";
 import { firestoreDb, isFirebaseConfigured } from "../config/firebase";
 
-type CollectionKey = keyof Pick<AppState, "users" | "barbers" | "services" | "queue" | "appointments" | "payments">;
+type CollectionKey = keyof Pick<AppState, "users" | "barbers" | "services" | "inspiration" | "queue" | "appointments" | "payments">;
 type AppStateUpdater = (state: AppState) => AppState;
 
-const COLLECTION_KEYS: CollectionKey[] = ["users", "barbers", "services", "queue", "appointments", "payments"];
+const COLLECTION_KEYS: CollectionKey[] = ["users", "barbers", "services", "inspiration", "queue", "appointments", "payments"];
 
 const remoteIds = new Map<CollectionKey, Set<string>>(
   COLLECTION_KEYS.map((key) => [key, new Set<string>()])
@@ -33,8 +33,8 @@ function cloneSet(source?: Set<string>): Set<string> {
   return new Set(source ? Array.from(source) : []);
 }
 
-function normalizeDocs<T extends DocumentData>(items: T[]): T[] {
-  return items.map((item) => JSON.parse(JSON.stringify(item)) as T);
+function normalizeDocs<T extends DocumentData>(items?: T[]): T[] {
+  return (items || []).map((item) => JSON.parse(JSON.stringify(item)) as T);
 }
 
 async function syncCollection(db: Firestore, key: CollectionKey, items: Array<{ id: string }>): Promise<void> {
@@ -65,7 +65,7 @@ async function pushStateToCloud(state: AppState): Promise<void> {
   await setDoc(doc(db, "settings", "payment"), state.paymentSettings, { merge: false });
 
   for (const key of COLLECTION_KEYS) {
-    await syncCollection(db, key, normalizeDocs(state[key] as Array<{ id: string }>));
+    await syncCollection(db, key, normalizeDocs(state[key] as Array<{ id: string }> | undefined));
   }
 }
 
