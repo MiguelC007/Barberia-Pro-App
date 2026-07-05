@@ -27,6 +27,23 @@ Cada vez que se haga una tanda de cambios, agrega una entrada nueva arriba de la
 - `npm run build`
 ```
 
+## v1.4.2 - 2026-07-05
+
+### Agregado
+- Nuevo archivo `src/styles/login-premium.css` para dar estilo premium y aislado a la pantalla de Login.
+- Seccion comercial en Login para presentar beneficios: turnos por QR, citas inteligentes, pago por QR y PWA instalable.
+- Tarjetas de acceso para cliente, barbero, dueno/admin y superadmin.
+
+### Cambiado
+- Login redisenado para que Spencer Barber Shop se vea como app privada profesional y no como pantalla demo/dev.
+- Los accesos demo ya no aparecen visibles de entrada; quedan detras de un boton discreto para desarrollo o modo demo.
+- README ya no muestra credenciales demo publicamente.
+- Los formularios de staff y cliente ahora usan submit para permitir Enter sin romper AuthContext, roles ni rutas protegidas.
+
+### Validacion
+- Pendiente ejecutar en local: `npm run lint`
+- Pendiente ejecutar en local: `npm run build`
+
 ## v1.4.1 - 2026-07-04
 
 ### Agregado
