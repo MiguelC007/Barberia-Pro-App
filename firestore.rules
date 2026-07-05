@@ -88,7 +88,16 @@ service cloud.firestore {
         data.duration is number &&
         data.duration > 0 &&
         data.icon is string &&
-        validOptionalText(data, "imageUrl", 2000) &&
+        validOptionalText(data, "imageUrl", 5000) &&
+        validOptionalText(data, "imageStoragePath", 300) &&
+        data.active is bool;
+    }
+
+    function validInspiration(data) {
+      return hasOnly(data, ["id", "title", "description", "imageUrl", "imageStoragePath", "active"]) &&
+        validPublicText(data.title, 120) &&
+        data.description is string &&
+        validOptionalText(data, "imageUrl", 5000) &&
         validOptionalText(data, "imageStoragePath", 300) &&
         data.active is bool;
     }
@@ -221,6 +230,12 @@ service cloud.firestore {
     match /services/{serviceId} {
       allow read: if true;
       allow create, update: if isOwner() && validService(request.resource.data);
+      allow delete: if isOwner();
+    }
+
+    match /inspiration/{inspirationId} {
+      allow read: if true;
+      allow create, update: if isOwner() && validInspiration(request.resource.data);
       allow delete: if isOwner();
     }
 
