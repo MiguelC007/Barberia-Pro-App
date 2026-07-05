@@ -13,7 +13,7 @@ export function Navbar() {
     { to: "/chatbot", label: "Asistente", icon: MessageCircle, show: true },
     { to: "/pago", label: "Pago QR", icon: QrCode, show: true },
     { to: "/barbero", label: "Barbero", icon: Scissors, show: canOperateQueue(role) },
-    { to: "/dueno", label: "Dueño", icon: UserCog, show: canManageBusiness(role) },
+    { to: "/dueno", label: "Administración", icon: UserCog, show: canManageBusiness(role) },
     { to: "/tv", label: "Pantalla", icon: MonitorPlay, show: canManageBusiness(role) },
     { to: "/super-admin", label: "Superadmin", icon: Shield, show: canViewSuperAdmin(role) }
   ];

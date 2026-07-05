@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
-import { Megaphone, Play, SkipForward, SquareCheckBig, XCircle } from "lucide-react";
+import { Clock3, Megaphone, Play, Scissors, SkipForward, SquareCheckBig, Ticket, XCircle } from "lucide-react";
 import { AppointmentCard } from "../components/AppointmentCard";
-import { BarberCard } from "../components/BarberCard";
+import { BarberCard, barberStatusLabel } from "../components/BarberCard";
 import { useAuth } from "../context/AuthContext";
 import { useLiveNow } from "../hooks/useLiveNow";
 import { setBarberStatus } from "../services/barberService";
 import { useAppData } from "../services/localStore";
 import { callReservedTicket, cancelTicket, finishServiceForBarber, skipTicket, startServiceForBarber, takeNextForBarber } from "../services/queueService";
+import { formatElapsed } from "../utils/time";
+import { getTicketClientLabel, getTicketCodeLabel } from "../utils/tickets";
 
 export default function BarberPanel() {
   const state = useAppData();
@@ -24,6 +26,10 @@ export default function BarberPanel() {
 
   const appointments = state.appointments.filter((appointment) => appointment.barberId === selectedBarber?.id);
   const reservedTicket = state.queue.find((item) => item.assignedBarberId === selectedBarber?.id && ["next", "called"].includes(item.status));
+  const currentTicket = selectedBarber?.currentQueueId
+    ? state.queue.find((item) => item.id === selectedBarber.currentQueueId)
+    : state.queue.find((item) => item.assignedBarberId === selectedBarber?.id && item.status === "in_service");
+  const currentService = currentTicket ? state.services.find((service) => service.id === currentTicket.serviceId) : null;
 
   function safeAction(action: () => void, success: string) {
     try {
@@ -39,12 +45,12 @@ export default function BarberPanel() {
   }
 
   return (
-    <div className="dashboard-grid">
+    <div className="dashboard-grid barber-panel-layout">
       <section className="panel">
         <div className="section-heading">
           <div>
             <h2>Panel de barbero</h2>
-            <p>Estado, turnos asignados y atención operativa del día.</p>
+            <p>Estado, cliente actual, tiempo en servicio y acciones operativas del día.</p>
           </div>
         </div>
 
@@ -57,9 +63,34 @@ export default function BarberPanel() {
           </select>
         </label>
 
+        <div className="barber-panel-hero">
+          <div>
+            <span className="section-kicker">Barbero activo</span>
+            <h3>{selectedBarber.name}</h3>
+            <p>Estado actual: {barberStatusLabel(selectedBarber.status)}</p>
+          </div>
+          <span className={`badge badge-${selectedBarber.status === "available" ? "success" : selectedBarber.status === "busy" ? "danger" : "warning"}`}>
+            {barberStatusLabel(selectedBarber.status)}
+          </span>
+        </div>
+
         <BarberCard barber={selectedBarber} now={now} />
 
-        <div className="actions">
+        <div className="barber-current-card">
+          <span className="section-kicker">Cliente actual</span>
+          {currentTicket ? (
+            <>
+              <h4>{getTicketClientLabel(currentTicket)}</h4>
+              <p><Ticket size={15} /> {getTicketCodeLabel(currentTicket)}</p>
+              <p><Scissors size={15} /> {currentService?.name || currentTicket.serviceName || "Servicio"}</p>
+              <p><Clock3 size={15} /> Tiempo en servicio: {formatElapsed(selectedBarber.serviceStartedAt || currentTicket.serviceStartedAt, now)}</p>
+            </>
+          ) : (
+            <p>No hay atención activa en este momento.</p>
+          )}
+        </div>
+
+        <div className="barber-actions">
           <button className="btn success" onClick={() => safeAction(() => setBarberStatus(selectedBarber.id, "available"), "Estado actualizado a disponible.")}>Disponible</button>
           <button className="btn ghost" onClick={() => safeAction(() => setBarberStatus(selectedBarber.id, "break"), "Estado actualizado a descanso.")}>Descanso</button>
           <button className="btn primary" onClick={() => safeAction(() => takeNextForBarber(selectedBarber.id), "Ticket reservado correctamente.")}>
@@ -81,7 +112,7 @@ export default function BarberPanel() {
         </div>
 
         {reservedTicket && (
-          <div className="actions">
+          <div className="barber-actions">
             <button className="btn ghost" onClick={() => safeAction(() => skipTicket(reservedTicket.id), "Ticket marcado como saltado.")}>
               <SkipForward size={17} />
               Saltar

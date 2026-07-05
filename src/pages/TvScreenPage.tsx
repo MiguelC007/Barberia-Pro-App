@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { useLiveNow } from "../hooks/useLiveNow";
 import { useAppData } from "../services/localStore";
-import { calculateQueueTimeline, isActiveTicketStatus } from "../utils/queueTimeline";
-import { formatElapsed, minutesToText, timeLabel } from "../utils/time";
+import { calculateQueueTimeline } from "../utils/queueTimeline";
+import { formatElapsed, formatTimeInputLabel, minutesToText } from "../utils/time";
 import { getTicketClientLabel, getTicketCodeLabel } from "../utils/tickets";
 
 function todayKey(): string {
@@ -15,10 +15,12 @@ export default function TvScreenPage() {
 
   const timeline = useMemo(() => calculateQueueTimeline(state, now), [state, now]);
   const currentTicket = state.queue.find((item) => item.status === "in_service") || null;
-  const upcomingTickets = timeline.filter((entry) => entry.item.id !== currentTicket?.id).slice(0, 5);
-  const waitingCount = timeline.filter((entry) => isActiveTicketStatus(entry.item.status)).length;
+  const currentService = currentTicket ? state.services.find((service) => service.id === currentTicket.serviceId) : null;
+  const upcomingTickets = timeline.filter((entry) => entry.item.id !== currentTicket?.id && entry.item.status !== "in_service").slice(0, 5);
+  const waitingCount = timeline.filter((entry) => entry.item.status !== "in_service").length;
   const todayAppointments = state.appointments
     .filter((appointment) => appointment.date === todayKey() && !["cancelled", "completed", "no_show"].includes(appointment.status))
+    .sort((a, b) => a.time.localeCompare(b.time))
     .slice(0, 6);
   const currentBarber = currentTicket?.assignedBarberId
     ? state.barbers.find((barber) => barber.id === currentTicket.assignedBarberId)
@@ -28,12 +30,12 @@ export default function TvScreenPage() {
     <div className="tv-screen">
       <header className="tv-header">
         <div>
-          <span className="badge badge-warning">Pantalla en vivo</span>
+          <span className="badge badge-warning">Pantalla pública en vivo</span>
           <h1>{state.business.appName}</h1>
           <p>{state.business.address} · {state.business.hours}</p>
         </div>
         <div className="tv-clock">
-          <strong>{new Date(now).toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit" })}</strong>
+          <strong>{new Date(now).toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit", hour12: true })}</strong>
           <span>{waitingCount} clientes esperando</span>
         </div>
       </header>
@@ -43,17 +45,17 @@ export default function TvScreenPage() {
           <span className="tv-section-label">Atendiendo ahora</span>
           {currentTicket ? (
             <>
-              <h2>{getTicketCodeLabel(currentTicket)}</h2>
-              <p>{getTicketClientLabel(currentTicket)}</p>
+              <h2>{getTicketClientLabel(currentTicket)}</h2>
+              <p className="tv-ticket-code-main">{getTicketCodeLabel(currentTicket)}</p>
               <div className="tv-current-meta">
-                <span>{currentTicket.serviceName || "Servicio"}</span>
+                <span>{currentService?.name || currentTicket.serviceName || "Servicio"}</span>
                 <span>{currentBarber?.name || "Barbero asignado"}</span>
                 <span>Tiempo en servicio: {formatElapsed(currentTicket.serviceStartedAt, now)}</span>
               </div>
             </>
           ) : (
             <>
-              <h2>Sin servicio activo</h2>
+              <h2>Sin atención activa</h2>
               <p>La siguiente atención aparecerá aquí automáticamente.</p>
             </>
           )}
@@ -67,19 +69,23 @@ export default function TvScreenPage() {
 
           <div className="tv-ticket-list">
             {upcomingTickets.length ? (
-              upcomingTickets.map((entry) => (
-                <article className="tv-ticket-row" key={entry.item.id}>
-                  <div>
-                    <strong>{getTicketCodeLabel(entry.item)}</strong>
-                    <p>{getTicketClientLabel(entry.item)}</p>
-                    <span>{entry.item.serviceName || "Servicio"} · {entry.assignedBarberSuggestion || "Por asignar"}</span>
-                  </div>
-                  <div className="tv-ticket-side">
-                    <strong>#{entry.position}</strong>
-                    <span>{entry.estimatedWaitMinutes <= 5 ? "Próximo" : minutesToText(entry.estimatedWaitMinutes)}</span>
-                  </div>
-                </article>
-              ))
+              upcomingTickets.map((entry) => {
+                const service = state.services.find((item) => item.id === entry.item.serviceId);
+
+                return (
+                  <article className="tv-ticket-row" key={entry.item.id}>
+                    <div>
+                      <strong>{getTicketClientLabel(entry.item)}</strong>
+                      <p>{getTicketCodeLabel(entry.item)}</p>
+                      <span>{service?.name || entry.item.serviceName || "Servicio"} · {entry.assignedBarberSuggestion || "Por asignar"}</span>
+                    </div>
+                    <div className="tv-ticket-side">
+                      <strong>#{entry.position}</strong>
+                      <span>{entry.estimatedWaitMinutes <= 5 ? "Próximo" : minutesToText(entry.estimatedWaitMinutes)}</span>
+                    </div>
+                  </article>
+                );
+              })
             ) : (
               <div className="tv-empty">No hay tickets pendientes por ahora.</div>
             )}
@@ -99,10 +105,10 @@ export default function TvScreenPage() {
                 const service = state.services.find((item) => item.id === appointment.serviceId);
                 return (
                   <article className="tv-appointment-row" key={appointment.id}>
-                    <strong>{appointment.time}</strong>
+                    <strong>{formatTimeInputLabel(appointment.time)}</strong>
                     <div>
-                      <p>{appointment.clientName}</p>
-                      <span>{service?.name || "Servicio"} · {barber?.name || "Barbero"} · {timeLabel(new Date(`${appointment.date}T${appointment.time}:00`).getTime())}</span>
+                      <p>{appointment.clientName || "Cliente"}</p>
+                      <span>{service?.name || "Servicio"} · {barber?.name || "Barbero"}</span>
                     </div>
                   </article>
                 );
