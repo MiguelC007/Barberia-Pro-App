@@ -61,6 +61,15 @@ export interface Service {
   active: boolean;
 }
 
+export interface InspirationItem {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  imageStoragePath?: string;
+  active: boolean;
+}
+
 export interface QueueItem {
   id: string;
   barberShopId?: string;
@@ -159,6 +168,7 @@ export interface AppState {
   users: AppUser[];
   barbers: Barber[];
   services: Service[];
+  inspiration?: InspirationItem[];
   queue: QueueItem[];
   appointments: Appointment[];
   payments: Payment[];

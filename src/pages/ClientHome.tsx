@@ -1,37 +1,17 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarCheck, MessageCircle, Scissors, Ticket } from "lucide-react";
+import { CalendarCheck, MessageCircle, Ticket } from "lucide-react";
 import { BarberCard } from "../components/BarberCard";
 import { QRCheckIn } from "../components/QRCheckIn";
 import { ServiceCard } from "../components/ServiceCard";
 import { StatCard } from "../components/StatCard";
 import { useLiveNow } from "../hooks/useLiveNow";
 import { useAppData } from "../services/localStore";
+import type { InspirationItem } from "../types";
+import { whatsappLink } from "../utils/format";
+import { getInspirationImage, getInspirationItems } from "../utils/inspiration";
 import { calculateNextTurnEstimate, calculateQueueTimeline } from "../utils/queueTimeline";
 import { minutesToText } from "../utils/time";
-import { whatsappLink } from "../utils/format";
-
-type TrendItem = {
-  id: string;
-  title: string;
-  description: string;
-  active?: boolean;
-};
-
-const fallbackTrends: TrendItem[] = [
-  { id: "trend-low-fade", title: "Low Fade", description: "Desvanecido bajo, limpio y elegante." },
-  { id: "trend-mid-fade", title: "Mid Fade", description: "Degradado medio con acabado moderno." },
-  { id: "trend-taper-fade", title: "Taper Fade", description: "Perfilado suave en laterales y nuca." },
-  { id: "trend-french-crop", title: "French Crop", description: "Corte práctico con textura frontal." },
-  { id: "trend-beard", title: "Corte + barba", description: "Look completo con barba perfilada." },
-  { id: "trend-burst-fade", title: "Burst Fade", description: "Fade circular moderno alrededor de la oreja." }
-];
-
-function getTrendItems(state: unknown): TrendItem[] {
-  const possibleState = state as { inspiration?: TrendItem[] };
-  const source = possibleState.inspiration?.length ? possibleState.inspiration : fallbackTrends;
-  return source.filter((item) => item.active !== false);
-}
 
 export default function ClientHome() {
   const state = useAppData();
@@ -40,7 +20,11 @@ export default function ClientHome() {
 
   const timeline = useMemo(() => calculateQueueTimeline(state, now), [state, now]);
   const nextTurnEstimate = useMemo(() => calculateNextTurnEstimate(state, now), [state, now]);
-  const trends = useMemo(() => getTrendItems(state), [state]);
+  const trends = useMemo(
+    () => getInspirationItems((state as typeof state & { inspiration?: InspirationItem[] }).inspiration),
+    [state]
+  );
+
   const waiting = timeline.length;
   const available = state.barbers.filter((barber) => barber.status === "available").length;
   const activeServices = state.services.filter((service) => service.active);
@@ -99,10 +83,12 @@ export default function ClientHome() {
               <strong>{waiting}</strong>
               <span>esperando</span>
             </div>
+
             <div>
               <strong>{available > 0 ? available : "—"}</strong>
               <span>{availabilityLabel}</span>
             </div>
+
             <div>
               <strong>{eta}</strong>
               <span>tiempo estimado</span>
@@ -140,7 +126,11 @@ export default function ClientHome() {
             <div>
               <span className="section-kicker">Equipo</span>
               <h3>Barberos activos</h3>
-              <p>{available > 0 ? "Disponibles para turnos y citas." : "Todos están ocupados. Te atenderemos por orden de llegada."}</p>
+              <p>
+                {available > 0
+                  ? "Disponibles para turnos y citas."
+                  : "Todos están ocupados. Te atenderemos por orden de llegada."}
+              </p>
             </div>
           </div>
 
@@ -155,7 +145,7 @@ export default function ClientHome() {
       </section>
 
       <section className="dashboard-grid home-main-grid home-bottom-clean">
-        <div className="panel home-panel">
+        <div className="panel home-panel qr-home-panel">
           <div className="section-heading">
             <div>
               <span className="section-kicker">Entrada rápida</span>
@@ -165,8 +155,12 @@ export default function ClientHome() {
           </div>
 
           <div className="actions">
-            <button className="btn primary" onClick={() => navigate("/turno")}>Tomar turno</button>
-            <button className="btn ghost" onClick={() => navigate("/fila")}>Ver fila</button>
+            <button className="btn primary" onClick={() => navigate("/turno")}>
+              Tomar turno
+            </button>
+            <button className="btn ghost" onClick={() => navigate("/fila")}>
+              Ver fila
+            </button>
           </div>
 
           <div className="qr-compact-wrap">
@@ -179,17 +173,18 @@ export default function ClientHome() {
             <div>
               <span className="section-kicker">Inspiración</span>
               <h3>Cortes en tendencia</h3>
-              <p>Ideas rápidas y claras para elegir tu próximo corte.</p>
+              <p>Ideas visuales para elegir tu próximo corte.</p>
             </div>
           </div>
 
-          <div className="cards-grid trend-list-clean">
+          <div className="cards-grid trend-grid-pro">
             {trends.map((cut) => (
-              <article className="mini-card trend-mini-card" key={cut.id}>
-                <div className="icon-bubble">
-                  <Scissors size={18} />
+              <article className="trend-card trend-card-pro" key={cut.id}>
+                <div className="trend-card-media">
+                  <img src={getInspirationImage(cut)} alt={cut.title} loading="lazy" />
                 </div>
-                <div>
+
+                <div className="trend-card-content">
                   <strong>{cut.title}</strong>
                   <p>{cut.description}</p>
                 </div>

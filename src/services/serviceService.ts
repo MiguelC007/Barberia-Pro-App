@@ -28,7 +28,7 @@ export function addService(input: {
     description: input.description.trim(),
     price: input.price,
     duration: input.duration,
-    icon: input.icon.trim() || "SB",
+    icon: input.icon.trim(),
     imageUrl: input.imageUrl?.trim() || "",
     imageStoragePath: input.imageStoragePath?.trim() || "",
     active: true
@@ -43,19 +43,21 @@ export function addService(input: {
 export function updateService(serviceId: string, updates: Partial<Omit<Service, "id">>): void {
   mutateAppState((state) => ({
     ...state,
-    services: state.services.map((service) =>
-      service.id === serviceId
-        ? {
-            ...service,
-            ...updates,
-            name: updates.name?.trim() || service.name,
-            description: updates.description?.trim() ?? service.description,
-            icon: updates.icon?.trim() || service.icon,
-            imageUrl: updates.imageUrl?.trim() ?? service.imageUrl,
-            imageStoragePath: updates.imageStoragePath?.trim() ?? service.imageStoragePath
-          }
-        : service
-    )
+    services: state.services.map((service) => {
+      if (service.id !== serviceId) {
+        return service;
+      }
+
+      return {
+        ...service,
+        ...updates,
+        name: updates.name !== undefined && updates.name.trim() ? updates.name.trim() : service.name,
+        description: updates.description !== undefined ? updates.description.trim() : service.description,
+        icon: updates.icon !== undefined ? updates.icon.trim() : service.icon,
+        imageUrl: updates.imageUrl !== undefined ? updates.imageUrl.trim() : service.imageUrl,
+        imageStoragePath: updates.imageStoragePath !== undefined ? updates.imageStoragePath.trim() : service.imageStoragePath
+      };
+    })
   }));
 }
 

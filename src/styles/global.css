@@ -319,7 +319,7 @@ p {
   align-items: start;
 }
 
-.trend-card div {
+.trend-card > .trend-mark {
   font-size: 38px;
 }
 

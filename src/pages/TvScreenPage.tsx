@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { QRCheckIn } from "../components/QRCheckIn";
 import { useLiveNow } from "../hooks/useLiveNow";
 import { useAppData } from "../services/localStore";
 import { calculateQueueTimeline } from "../utils/queueTimeline";
@@ -40,7 +41,7 @@ export default function TvScreenPage() {
         </div>
       </header>
 
-      <main className="tv-grid">
+      <main className="tv-grid tv-grid-with-qr">
         <section className="tv-current-card">
           <span className="tv-section-label">Atendiendo ahora</span>
           {currentTicket ? (
@@ -90,6 +91,20 @@ export default function TvScreenPage() {
               <div className="tv-empty">No hay tickets pendientes por ahora.</div>
             )}
           </div>
+        </section>
+
+        <section className="tv-panel tv-qr-panel">
+          <div className="tv-panel-head">
+            <span className="tv-section-label">Tomar turno</span>
+            <strong>QR</strong>
+          </div>
+
+          <div className="tv-qr-copy">
+            <h3>Escanea para entrar a la fila</h3>
+            <p>Para clientes sin app: escanean, escriben sus datos y reciben su ticket al instante.</p>
+          </div>
+
+          <QRCheckIn />
         </section>
 
         <section className="tv-panel">

@@ -1,5 +1,6 @@
 import type { AppState, AppUser } from "../types";
 import { BARBERSHOP_CONFIG } from "../config/barbershop.config";
+import { defaultInspirationItems } from "../utils/inspiration";
 
 const now = Date.now();
 
@@ -117,6 +118,7 @@ export const initialAppState: AppState = {
       active: true
     }
   ],
+  inspiration: defaultInspirationItems,
   queue: [],
   appointments: [],
   payments: []
