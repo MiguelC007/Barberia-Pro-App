@@ -23,14 +23,14 @@ export default function SuperAdminPanel() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <h2>Superadministración técnica</h2>
+            <h2>Superadministración</h2>
             <p>Soporte, mantenimiento, exportación y configuración avanzada del sistema.</p>
           </div>
           <Settings2 />
         </div>
 
         <div className="alert info">
-          Acceso reservado para mantenimiento técnico, respaldo operativo y soporte de implementación.
+          Acceso reservado para mantenimiento, respaldo operativo y soporte de implementación.
         </div>
 
         <div className="actions">
