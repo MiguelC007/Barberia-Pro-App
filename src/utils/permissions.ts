@@ -1,0 +1,32 @@
+import type { UserRole } from "../types";
+
+export function roleLabel(role: UserRole): string {
+  const labels: Record<UserRole, string> = {
+    super_admin: "Super Admin técnico",
+    owner: "Dueño/Admin",
+    barber: "Barbero",
+    client: "Cliente",
+    guest: "Invitado"
+  };
+  return labels[role];
+}
+
+export function canAccess(role: UserRole, allowed: UserRole[]): boolean {
+  return allowed.includes(role);
+}
+
+export function canManageBusiness(role: UserRole): boolean {
+  return role === "owner" || role === "super_admin";
+}
+
+export function canOperateQueue(role: UserRole): boolean {
+  return role === "barber" || role === "owner" || role === "super_admin";
+}
+
+export function canViewAllAppointments(role: UserRole): boolean {
+  return role === "owner" || role === "super_admin";
+}
+
+export function canViewSuperAdmin(role: UserRole): boolean {
+  return role === "super_admin";
+}

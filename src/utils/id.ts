@@ -1,0 +1,7 @@
+export function createId(prefix: string): string {
+  const cryptoId = globalThis.crypto?.randomUUID?.();
+  if (cryptoId) return `${prefix}_${cryptoId}`;
+
+  const random = Math.random().toString(36).slice(2, 10);
+  return `${prefix}_${Date.now()}_${random}`;
+}

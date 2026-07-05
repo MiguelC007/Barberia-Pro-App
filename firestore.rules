@@ -1,0 +1,252 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasUserDoc() {
+      return signedIn() && exists(userPath());
+    }
+
+    function userDoc() {
+      return get(userPath());
+    }
+
+    function role() {
+      return hasUserDoc() && userDoc().data.role != null ? userDoc().data.role : "guest";
+    }
+
+    function barberId() {
+      return hasUserDoc() && userDoc().data.barberId != null ? userDoc().data.barberId : "";
+    }
+
+    function isSuperAdmin() {
+      return role() == "super_admin";
+    }
+
+    function isOwner() {
+      return role() == "owner" || isSuperAdmin();
+    }
+
+    function isAssignedBarber(id) {
+      return role() == "barber" && barberId() == id;
+    }
+
+    function validRole(value) {
+      return value in ["super_admin", "owner", "barber", "client", "guest"];
+    }
+
+    function validStatus(value, allowed) {
+      return value in allowed;
+    }
+
+    function hasOnly(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function validPublicText(value, max) {
+      return value is string && value.size() > 0 && value.size() <= max;
+    }
+
+    function validOptionalText(data, key, max) {
+      return !(key in data) || data[key] == null || (data[key] is string && data[key].size() <= max);
+    }
+
+    function validUser(data) {
+      return hasOnly(data, ["id", "name", "email", "phone", "role", "barberId", "createdAt", "active"]) &&
+        validPublicText(data.name, 120) &&
+        validRole(data.role) &&
+        data.createdAt is number &&
+        data.active is bool &&
+        validOptionalText(data, "email", 180) &&
+        validOptionalText(data, "phone", 40) &&
+        (!("barberId" in data) || data.barberId == null || data.barberId is string);
+    }
+
+    function validBarber(data) {
+      return hasOnly(data, ["id", "userId", "name", "phone", "photo", "status", "currentQueueId", "currentClientName", "serviceStartedAt", "doneToday", "specialties", "active"]) &&
+        validPublicText(data.name, 120) &&
+        data.phone is string &&
+        validStatus(data.status, ["available", "busy", "break", "offline"]) &&
+        data.doneToday is number &&
+        data.specialties is list &&
+        data.active is bool;
+    }
+
+    function validService(data) {
+      return hasOnly(data, ["id", "name", "description", "price", "duration", "icon", "active"]) &&
+        validPublicText(data.name, 120) &&
+        data.description is string &&
+        data.price is number &&
+        data.price > 0 &&
+        data.duration is number &&
+        data.duration > 0 &&
+        data.icon is string &&
+        data.active is bool;
+    }
+
+    function validQueue(data) {
+      return hasOnly(data, [
+        "id",
+        "barberShopId",
+        "ticketCode",
+        "dailySequenceNumber",
+        "clientId",
+        "clientName",
+        "clientPhone",
+        "whatsapp",
+        "source",
+        "serviceId",
+        "serviceName",
+        "estimatedDurationMinutes",
+        "preferredBarberId",
+        "assignedBarberId",
+        "status",
+        "note",
+        "notes",
+        "position",
+        "createdAt",
+        "waitStartedAt",
+        "estimatedStartAt",
+        "estimatedEndAt",
+        "joinedAt",
+        "calledAt",
+        "startedAt",
+        "serviceStartedAt",
+        "serviceEndedAt",
+        "finishedAt",
+        "completedAt",
+        "skippedAt",
+        "cancelledAt",
+        "mediaReferences"
+      ]) &&
+        validPublicText(data.clientName, 120) &&
+        data.serviceId is string &&
+        validStatus(data.status, ["waiting", "next", "called", "in_service", "completed", "done", "skipped", "cancelled"]) &&
+        data.joinedAt is number &&
+        data.createdAt is number &&
+        data.waitStartedAt is number &&
+        validOptionalText(data, "clientPhone", 40) &&
+        validOptionalText(data, "whatsapp", 40) &&
+        validOptionalText(data, "note", 300) &&
+        validOptionalText(data, "notes", 300) &&
+        (!("ticketCode" in data) || data.ticketCode is string) &&
+        (!("dailySequenceNumber" in data) || data.dailySequenceNumber is number) &&
+        (!("position" in data) || data.position is number) &&
+        (!("source" in data) || data.source in ["qr", "manual", "client", "admin"]) &&
+        (!("estimatedDurationMinutes" in data) || data.estimatedDurationMinutes is number);
+    }
+
+    function validAppointment(data) {
+      return hasOnly(data, [
+        "id",
+        "barberShopId",
+        "clientId",
+        "clientName",
+        "clientPhone",
+        "serviceId",
+        "barberId",
+        "date",
+        "time",
+        "status",
+        "source",
+        "createdAt",
+        "checkedInAt",
+        "startedAt",
+        "completedAt",
+        "noShowAt",
+        "graceMinutes",
+        "mediaReferences"
+      ]) &&
+        validPublicText(data.clientName, 120) &&
+        data.serviceId is string &&
+        data.barberId is string &&
+        data.date is string &&
+        data.time is string &&
+        validStatus(data.status, ["pending", "scheduled", "confirmed", "checked_in", "in_service", "cancelled", "completed", "no_show"]) &&
+        data.source in ["manual", "bot", "client"] &&
+        data.createdAt is number &&
+        validOptionalText(data, "clientPhone", 40);
+    }
+
+    function validPayment(data) {
+      return hasOnly(data, ["id", "clientName", "amount", "status", "proofText", "createdAt", "confirmedAt"]) &&
+        validPublicText(data.clientName, 120) &&
+        data.amount is number &&
+        data.amount > 0 &&
+        validStatus(data.status, ["pending", "confirmed", "rejected"]) &&
+        data.createdAt is number &&
+        validOptionalText(data, "proofText", 300);
+    }
+
+    function changedOnly(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    match /{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner() || (signedIn() && request.auth.uid == userId);
+      allow create: if signedIn() && request.auth.uid == userId && validUser(request.resource.data);
+      allow update: if validUser(request.resource.data) &&
+        (isOwner() || (signedIn() && request.auth.uid == userId && changedOnly(["name", "phone"])));
+      allow delete: if isOwner();
+    }
+
+    match /barbers/{barberDocId} {
+      allow read: if true;
+      allow create: if isOwner() && validBarber(request.resource.data);
+      allow update: if validBarber(request.resource.data) &&
+        (isOwner() || (isAssignedBarber(barberDocId) && changedOnly(["status", "currentQueueId", "currentClientName", "serviceStartedAt", "doneToday"])));
+      allow delete: if isOwner();
+    }
+
+    match /services/{serviceId} {
+      allow read: if true;
+      allow create, update: if isOwner() && validService(request.resource.data);
+      allow delete: if isOwner();
+    }
+
+    match /queue/{queueId} {
+      allow read: if true;
+      allow create: if validQueue(request.resource.data) && request.resource.data.status == "waiting";
+      allow update: if validQueue(request.resource.data) &&
+        (isOwner() || (request.resource.data.assignedBarberId == barberId() && changedOnly(["assignedBarberId", "status", "calledAt", "startedAt", "finishedAt"])));
+      allow delete: if isOwner();
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if signedIn();
+      allow create: if validAppointment(request.resource.data) &&
+        request.resource.data.status == "scheduled" &&
+        request.resource.data.source in ["bot", "client", "manual"];
+      allow update: if validAppointment(request.resource.data) &&
+        (isOwner() || request.resource.data.barberId == barberId());
+      allow delete: if isOwner();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isOwner();
+      allow create: if validPayment(request.resource.data) && request.resource.data.status == "pending";
+      allow update: if isOwner() && validPayment(request.resource.data);
+      allow delete: if isOwner();
+    }
+
+    match /analytics/{docId} {
+      allow read, write: if isOwner();
+    }
+  }
+}

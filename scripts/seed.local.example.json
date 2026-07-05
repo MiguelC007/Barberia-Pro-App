@@ -1,0 +1,14 @@
+{
+  "superAdmin": {
+    "name": "Miguel Carranza",
+    "email": "miguecarranzaavilez@gmail.com",
+    "password": "TU_PASSWORD_PRIVADA",
+    "phone": "50400000000"
+  },
+  "owner": {
+    "name": "Spencer",
+    "email": "spencer@spencerbarber.com",
+    "password": "PASSWORD_PRIVADA_DE_SPENCER",
+    "phone": "50400000000"
+  }
+}
