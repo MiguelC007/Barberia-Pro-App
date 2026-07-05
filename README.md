@@ -1,6 +1,6 @@
 # Spencer Barber Shop App
 
-Aplicación web y PWA privada para la operación de Spencer Barber Shop. El proyecto está orientado a un solo negocio, con roles, tickets por QR, citas, pagos y paneles operativos listos para evolucionar a producción con Firebase.
+Aplicación web/PWA privada para la operación de Spencer Barber Shop. El sistema está pensado para una sola barbería, con roles controlados, tickets por QR, lista de espera, citas, pago por QR, pantalla pública y paneles operativos listos para evolucionar a producción con Firebase.
 
 ## Stack
 
@@ -8,35 +8,36 @@ Aplicación web y PWA privada para la operación de Spencer Barber Shop. El proy
 - TypeScript
 - Vite
 - Firebase Auth
-- Cloud Firestore en tiempo real
-- Firebase Storage preparado
+- Cloud Firestore
+- Firebase Storage preparado para la etapa final
 - Firebase Hosting
 - React Router DOM
 - `qrcode`
 - CSS propio responsive y mobile first
 
-## Funcionalidades principales
+## Funciones principales
 
-- Autenticación por roles: cliente, invitado, barbero, dueño y superadministración.
-- Tickets de atención por QR con código correlativo diario tipo `SB-YYYYMMDD-001`.
-- Prevención de tickets duplicados por dispositivo, cliente o teléfono mientras exista un ticket activo.
-- Seguimiento en tiempo real de posición, estado y espera estimada del ticket.
-- Operación de cola para barbero y dueño: tomar siguiente, llamar, atender, finalizar, saltar y cancelar.
-- Pantalla pública `/tv` para monitor interno de la barbería.
-- Agenda de citas con horarios sugeridos según cola y disponibilidad.
-- Pago por QR con envío de comprobante y validación manual.
-- Servicios con imagen uniforme y estructura lista para Firebase Storage.
-- Fallback local con `localStorage` para desarrollo si Firebase no está configurado.
+- Acceso por roles: cliente, barbero, dueño y superadministración.
+- Tickets de atención por QR con correlativo diario tipo `SB-YYYYMMDD-001`.
+- Lista de espera con posición, estado y tiempo estimado en vivo.
+- Panel de barbero para disponibilidad, descanso, tomar siguiente, llamar, atender y finalizar.
+- Panel de administración para branding, datos bancarios, servicios, barberos y pagos pendientes.
+- Pantalla pública `/tv` y alias `/pantalla` para mostrar atención actual, próximos tickets y citas del día.
+- Agenda de citas con horarios sugeridos según turnos activos, barberos y citas existentes.
+- Pago por QR con comprobante y validación desde administración.
+- Servicios con imágenes uniformes y estructura preparada para Firebase Storage.
+- PWA instalable para uso en celular, tablet o escritorio.
 
-## Instalación
+## Instalación local
 
 ```bash
 npm install
+npm run dev
 ```
 
 ## Variables de entorno
 
-Copia `.env.example` a `.env` y completa tus credenciales de Firebase:
+Copia `.env.example` a `.env` y completa tus credenciales de Firebase cuando vayas a conectar la etapa final de producción:
 
 ```env
 VITE_FIREBASE_API_KEY=
@@ -46,14 +47,6 @@ VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 ```
-
-## Desarrollo
-
-```bash
-npm run dev
-```
-
-Si Firebase no está configurado, la app usará almacenamiento local como respaldo de desarrollo. En producción se recomienda usar siempre Firebase para autenticación, Firestore y Storage.
 
 ## Validación
 
@@ -88,12 +81,14 @@ payments/
   paymentId
 ```
 
-## Deploy
+## Deploy futuro
 
 ```bash
 npm run build
 firebase deploy
 ```
+
+Firebase será la etapa final para dejar Spencer Barber Shop App en producción con autenticación, Firestore, Storage y Hosting configurados correctamente.
 
 ## Documentación relacionada
 
@@ -103,4 +98,4 @@ firebase deploy
 - [ROADMAP.md](./ROADMAP.md)
 - [scripts/README.md](./scripts/README.md)
 
-No publiques credenciales reales, cuentas de prueba ni secretos en este repositorio.
+No publiques credenciales reales, accesos privados, cuentas bancarias completas ni secretos en este repositorio.
