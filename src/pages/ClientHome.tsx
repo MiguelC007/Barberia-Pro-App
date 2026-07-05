@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarCheck, MessageCircle, Ticket } from "lucide-react";
+import { CalendarCheck, MessageCircle, Scissors, Ticket } from "lucide-react";
 import { BarberCard } from "../components/BarberCard";
 import { QRCheckIn } from "../components/QRCheckIn";
 import { ServiceCard } from "../components/ServiceCard";
@@ -15,7 +15,6 @@ type TrendItem = {
   id: string;
   title: string;
   description: string;
-  imageUrl?: string;
   active?: boolean;
 };
 
@@ -32,29 +31,6 @@ function getTrendItems(state: unknown): TrendItem[] {
   const possibleState = state as { inspiration?: TrendItem[] };
   const source = possibleState.inspiration?.length ? possibleState.inspiration : fallbackTrends;
   return source.filter((item) => item.active !== false);
-}
-
-function getTrendImage(item: TrendItem): string {
-  if (item.imageUrl?.trim()) return item.imageUrl;
-
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" role="img">
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#111827" />
-          <stop offset="55%" stop-color="#202734" />
-          <stop offset="100%" stop-color="#f97316" />
-        </linearGradient>
-      </defs>
-      <rect width="900" height="900" fill="url(#bg)" />
-      <circle cx="720" cy="180" r="138" fill="rgba(255,255,255,0.10)" />
-      <circle cx="205" cy="705" r="180" fill="rgba(255,255,255,0.07)" />
-      <path d="M282 620 630 270" stroke="rgba(255,255,255,0.28)" stroke-width="34" stroke-linecap="round" />
-      <path d="M318 270 666 620" stroke="rgba(255,255,255,0.18)" stroke-width="34" stroke-linecap="round" />
-    </svg>
-  `;
-
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
 export default function ClientHome() {
@@ -178,19 +154,24 @@ export default function ClientHome() {
         </div>
       </section>
 
-      <section className="dashboard-grid home-main-grid">
-        <div className="qr-feature-panel">
-          <div className="qr-feature-copy">
-            <span className="section-kicker">Entrada rápida</span>
-            <h3>Escanea el QR y mira tu turno desde tu celular</h3>
-            <p>Al llegar puedes entrar a la lista de espera, ver tu posición y saber cuándo se acerca tu atención.</p>
-
-            <button className="btn primary" onClick={() => navigate("/turno")}>
-              Tomar turno
-            </button>
+      <section className="dashboard-grid home-main-grid home-bottom-clean">
+        <div className="panel home-panel">
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">Entrada rápida</span>
+              <h3>Escanea el QR y mira tu turno desde tu celular</h3>
+              <p>Al llegar puedes entrar a la lista de espera, ver tu posición y saber cuándo se acerca tu atención.</p>
+            </div>
           </div>
 
-          <QRCheckIn />
+          <div className="actions">
+            <button className="btn primary" onClick={() => navigate("/turno")}>Tomar turno</button>
+            <button className="btn ghost" onClick={() => navigate("/fila")}>Ver fila</button>
+          </div>
+
+          <div className="qr-compact-wrap">
+            <QRCheckIn />
+          </div>
         </div>
 
         <div className="panel home-panel">
@@ -198,17 +179,17 @@ export default function ClientHome() {
             <div>
               <span className="section-kicker">Inspiración</span>
               <h3>Cortes en tendencia</h3>
-              <p>Ideas visuales para elegir tu próximo corte.</p>
+              <p>Ideas rápidas y claras para elegir tu próximo corte.</p>
             </div>
           </div>
 
-          <div className="cards-grid trend-grid-pro">
+          <div className="cards-grid trend-list-clean">
             {trends.map((cut) => (
-              <article className="trend-card trend-card-pro" key={cut.id}>
-                <div className="trend-card-media">
-                  <img src={getTrendImage(cut)} alt={cut.title} loading="lazy" />
+              <article className="mini-card trend-mini-card" key={cut.id}>
+                <div className="icon-bubble">
+                  <Scissors size={18} />
                 </div>
-                <div className="trend-card-content">
+                <div>
                   <strong>{cut.title}</strong>
                   <p>{cut.description}</p>
                 </div>
