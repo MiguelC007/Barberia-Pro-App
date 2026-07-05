@@ -1,0 +1,9 @@
+/* Premium login styles for Spencer Barber Shop */
+.login-premium-screen {
+  min-height: 100vh;
+  padding: 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(390px, 0.95fr);
+  gap: 20px;
+  align-items: stretch;
+}
