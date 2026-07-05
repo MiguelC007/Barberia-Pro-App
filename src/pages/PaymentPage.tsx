@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageCircle, Save } from "lucide-react";
+import { Copy, MessageCircle, Save } from "lucide-react";
 import { MediaCapturePanel } from "../components/MediaCapturePanel";
 import { MediaReferenceList } from "../components/MediaReferenceList";
 import { PaymentQRCode } from "../components/PaymentQRCode";
@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import { createPaymentProof, updatePaymentSettings } from "../services/paymentService";
 import { useAppData } from "../services/localStore";
 import type { MediaReference } from "../types";
-import { maskAccount, whatsappLink } from "../utils/format";
+import { whatsappLink } from "../utils/format";
 
 export default function PaymentPage() {
   const state = useAppData();
@@ -27,7 +27,7 @@ export default function PaymentPage() {
       updatePaymentSettings({
         bankName,
         accountHolder,
-        accountNumberMasked: maskAccount(accountNumber),
+        accountNumberMasked: accountNumber.trim(),
         whatsapp,
         qrNote: state.paymentSettings.qrNote,
         editableOnlyByOwner: true
@@ -35,6 +35,15 @@ export default function PaymentPage() {
       setMessage("Datos de pago actualizados correctamente.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "No se pudieron actualizar los datos de pago.");
+    }
+  }
+
+  async function copyText(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setMessage(`${label} copiado.`);
+    } catch {
+      setMessage("No se pudo copiar automáticamente. Puedes copiarlo manualmente.");
     }
   }
 
@@ -63,18 +72,29 @@ export default function PaymentPage() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <h2>Pago por QR</h2>
-            <p>Transfiere, adjunta tu comprobante y recibe confirmación desde administración.</p>
+            <h2>Pago por transferencia</h2>
+            <p>Escanea el QR para abrir esta pantalla, realiza tu transferencia y adjunta el comprobante.</p>
           </div>
         </div>
 
         <PaymentQRCode business={state.business} payment={state.paymentSettings} />
 
-        <div className="summary-card">
-          <strong>{state.business.appName}</strong>
+        <div className="summary-card payment-transfer-card">
+          <strong>Datos para transferir</strong>
           <p>Banco: {state.paymentSettings.bankName}</p>
           <p>Titular: {state.paymentSettings.accountHolder}</p>
           <p>Cuenta: {state.paymentSettings.accountNumberMasked}</p>
+          <div className="actions">
+            <button className="btn ghost" onClick={() => copyText(state.paymentSettings.accountNumberMasked, "Cuenta")}>
+              <Copy size={16} />
+              Copiar cuenta
+            </button>
+            <button className="btn ghost" onClick={() => copyText(state.paymentSettings.accountHolder, "Titular")}>
+              <Copy size={16} />
+              Copiar titular
+            </button>
+          </div>
+          <small>Este QR abre las instrucciones de pago. La transferencia se realiza desde la banca móvil del cliente.</small>
         </div>
 
         <div className="form-grid">
@@ -84,7 +104,7 @@ export default function PaymentPage() {
           </label>
           <label>
             Nota del comprobante
-            <input value={proofText} onChange={(event) => setProofText(event.target.value)} placeholder="Ej. transferencia BAC 1234" />
+            <input value={proofText} onChange={(event) => setProofText(event.target.value)} placeholder="Ej. transferencia enviada" />
           </label>
         </div>
 
@@ -106,7 +126,7 @@ export default function PaymentPage() {
         <div className="section-heading">
           <div>
             <h2>Configurar datos bancarios</h2>
-            <p>Acceso privado para administración del negocio.</p>
+            <p>Estos datos se mostrarán al cliente para que pueda transferir manualmente desde su banco.</p>
           </div>
         </div>
 
@@ -124,7 +144,7 @@ export default function PaymentPage() {
               <input value={accountHolder} onChange={(event) => setAccountHolder(event.target.value)} />
             </label>
             <label>
-              Número de cuenta
+              Cuenta para transferencia
               <input value={accountNumber} onChange={(event) => setAccountNumber(event.target.value)} />
             </label>
             <label>
@@ -132,7 +152,7 @@ export default function PaymentPage() {
               <input value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} />
             </label>
           </div>
-          <button className="btn primary" onClick={saveSettings}><Save size={17} /> Guardar QR de pago</button>
+          <button className="btn primary" onClick={saveSettings}><Save size={17} /> Guardar datos de pago</button>
         </RoleGuard>
       </section>
     </div>
