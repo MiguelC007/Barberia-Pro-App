@@ -17,7 +17,7 @@ const MIME_EXTENSIONS: Record<string, string> = {
   "image/gif": "gif"
 };
 
-export function fileToDataUrl(file: File): Promise<string> {
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -25,6 +25,17 @@ export function fileToDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(new Error("No se pudo leer la imagen seleccionada."));
     reader.readAsDataURL(file);
   });
+}
+
+export async function fileToDataUrl(file: File): Promise<string> {
+  try {
+    const uploadId = `owner-upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const uploaded = await uploadImageFile(file, buildImageStoragePath("services", uploadId, file));
+    return uploaded.imageUrl;
+  } catch (error) {
+    console.warn("Firebase Storage no está disponible para esta imagen. Se usará respaldo temporal local.", error);
+    return readFileAsDataUrl(file);
+  }
 }
 
 function getImageExtension(file: File): string {
@@ -41,7 +52,9 @@ function cleanPathPart(value: string): string {
 }
 
 export function buildImageStoragePath(folder: ImageUploadFolder, itemId: string, file: File, filename = "cover"): string {
-  return `${folder}/${cleanPathPart(itemId)}/${cleanPathPart(filename)}.${getImageExtension(file)}`;
+  const safeFolder = folder === "inspiration" ? "services" : folder;
+  const safeItemId = folder === "inspiration" ? `inspiration_${itemId}` : itemId;
+  return `${safeFolder}/${cleanPathPart(safeItemId)}/${cleanPathPart(filename)}.${getImageExtension(file)}`;
 }
 
 export async function uploadImageFile(file: File, storagePath: string): Promise<ImageFileResult> {
