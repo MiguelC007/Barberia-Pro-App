@@ -2,11 +2,22 @@ import type { UserRole } from "../types";
 
 export function roleLabel(role: UserRole): string {
   const labels: Record<UserRole, string> = {
-    super_admin: "Superadministración técnica",
+    super_admin: "Superadmin",
+    owner: "Dueño",
+    barber: "Barbero",
+    client: "Cliente",
+    guest: "Cliente"
+  };
+  return labels[role];
+}
+
+export function roleFullLabel(role: UserRole): string {
+  const labels: Record<UserRole, string> = {
+    super_admin: "Superadministración",
     owner: "Dueño administrador",
     barber: "Barbero",
     client: "Cliente",
-    guest: "Invitado"
+    guest: "Cliente invitado"
   };
   return labels[role];
 }
