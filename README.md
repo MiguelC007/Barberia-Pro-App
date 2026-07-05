@@ -41,12 +41,11 @@ Esta app no es marketplace. El cliente no ve otras barberias. Cada barberia debe
 - PWA instalable
 - Modo demo/localStorage si Firebase no esta configurado
 
-## Credenciales demo
+## Accesos de prueba
 
-```txt
-Super Admin: super@barberhn.com / 123456
-Dueno/Admin: spencer@spencerbarber.com / 123456
-```
+Por presentacion profesional, las credenciales demo ya no se muestran publicamente en el README ni en la pantalla inicial.
+
+Para desarrollo local, los accesos de prueba deben mantenerse en `CREDENTIALS.md`, `CREDENTIALS.local.md` o en el seed local correspondiente. En la pantalla de Login, los accesos de prueba quedan ocultos detras de un boton discreto y solo deben usarse para validacion interna.
 
 El cliente puede entrar con nombre y WhatsApp, continuar como invitado o escanear el QR publico para recibir ticket.
 
