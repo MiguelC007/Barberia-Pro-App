@@ -1,19 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import {
-  CalendarCheck,
-  CreditCard,
-  Lock,
-  QrCode,
-  Scissors,
-  ShieldCheck,
-  Smartphone,
-  UserRound
-} from "lucide-react";
+import { CalendarCheck, CreditCard, Lock, QrCode, Scissors, ShieldCheck, Smartphone, UserRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { useAppData } from "../services/localStore";
-import { isUsingDemoAuth } from "../services/authService";
 import "../styles/login-premium.css";
 
 const benefits = [
@@ -33,18 +23,13 @@ const accessTypes = [
     text: "Acceso privado para atender turnos, revisar citas y dar seguimiento."
   },
   {
-    title: "Dueño/Admin",
-    text: "Control del negocio, clientes, pagos, servicios y operación diaria."
+    title: "Dueño administrador",
+    text: "Control del negocio, pagos, servicios, branding y operación diaria."
   },
   {
-    title: "Superadmin",
-    text: "Soporte técnico y administración global del sistema."
+    title: "Superadministración",
+    text: "Soporte técnico, mantenimiento y configuración avanzada del sistema."
   }
-];
-
-const demoCredentials = [
-  { role: "Super Admin", email: "super@barberhn.com", password: "123456" },
-  { role: "Dueño/Admin", email: "spencer@spencerbarber.com", password: "123456" }
 ];
 
 export default function Login() {
@@ -56,12 +41,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
-  const [showDemoAccess, setShowDemoAccess] = useState(false);
   const [error, setError] = useState("");
 
   const appName = state.business.appName || "Spencer Barber Shop";
-  const isDemoAuth = isUsingDemoAuth();
-  const canRevealDemoAccess = isDemoAuth || import.meta.env.DEV;
 
   if (!isReady) return <LoadingScreen />;
   if (user) return <Navigate to="/" replace />;
@@ -100,19 +82,18 @@ export default function Login() {
           </div>
           <div>
             <span>Spencer Barber Shop</span>
-            <strong>App privada</strong>
+            <strong>Sistema privado</strong>
           </div>
         </div>
 
         <div className="login-premium-copy">
-          <span className="login-premium-eyebrow">Sistema privado para barbería</span>
+          <span className="login-premium-eyebrow">Gestión profesional para barbería</span>
           <h1>{appName}</h1>
           <p className="login-premium-lead">
-            Gestioná turnos, citas y clientes desde una sola app privada para tu barbería.
+            Gestiona turnos, citas, pagos y clientes desde una sola plataforma ordenada.
           </p>
           <p className="login-premium-text">
-            Tus clientes pueden tomar turno por QR, reservar citas, enviar referencias de corte y pagar por QR. Vos
-            manejás la barbería desde un panel privado, simple y ordenado.
+            Tus clientes pueden tomar turno por QR, reservar citas, enviar referencias de corte y pagar por QR. El equipo administra todo desde un panel privado y seguro.
           </p>
         </div>
 
@@ -132,7 +113,7 @@ export default function Login() {
           </div>
           <div>
             <strong>QR</strong>
-            <span>entrada/pago</span>
+            <span>ingreso/pago</span>
           </div>
           <div>
             <strong>PWA</strong>
@@ -147,8 +128,8 @@ export default function Login() {
             <span className="login-secure-badge">
               <ShieldCheck size={15} /> Acceso privado
             </span>
-            <h2>Entrar a la app</h2>
-            <p>Acceso privado para Spencer Barber Shop.</p>
+            <h2>Entrar al sistema</h2>
+            <p>Ingreso seguro para Spencer Barber Shop.</p>
           </div>
           <div className="login-lock-bubble" aria-hidden="true">
             <Lock />
@@ -157,24 +138,14 @@ export default function Login() {
 
         <div className="login-trust-note">
           <ShieldCheck size={18} aria-hidden="true" />
-          <span>Tus turnos, citas y datos de clientes se mantienen separados y protegidos.</span>
+          <span>Turnos, citas y datos operativos protegidos con acceso por rol.</span>
         </div>
 
         <div className="login-mode-switcher" role="tablist" aria-label="Tipo de acceso">
-          <button
-            type="button"
-            className={mode === "staff" ? "active" : ""}
-            onClick={() => setMode("staff")}
-            aria-selected={mode === "staff"}
-          >
+          <button type="button" className={mode === "staff" ? "active" : ""} onClick={() => setMode("staff")} aria-selected={mode === "staff"}>
             Dueño / Barbero
           </button>
-          <button
-            type="button"
-            className={mode === "client" ? "active" : ""}
-            onClick={() => setMode("client")}
-            aria-selected={mode === "client"}
-          >
+          <button type="button" className={mode === "client" ? "active" : ""} onClick={() => setMode("client")} aria-selected={mode === "client"}>
             Cliente / Invitado
           </button>
         </div>
@@ -183,31 +154,17 @@ export default function Login() {
           <form className="login-form-card" onSubmit={handleStaffLogin}>
             <div className="login-form-intro">
               <h3>Panel privado del negocio</h3>
-              <p>Ingresá con tu correo autorizado para administrar la operación de la barbería.</p>
+              <p>Ingresa con tu correo autorizado para administrar la operación de la barbería.</p>
             </div>
 
             <label>
               Correo
-              <input
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="username"
-                inputMode="email"
-                placeholder="correo@spencerbarber.com"
-                required
-              />
+              <input value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" inputMode="email" placeholder="correo@spencerbarber.com" required />
             </label>
 
             <label>
               Contraseña
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
-                placeholder="Tu contraseña privada"
-                required
-              />
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" placeholder="Tu contraseña privada" required />
             </label>
 
             {error && <div className="alert danger">{error}</div>}
@@ -215,25 +172,6 @@ export default function Login() {
             <button className="btn primary full login-submit-button" type="submit">
               Entrar de forma segura
             </button>
-
-            {canRevealDemoAccess && (
-              <div className="login-demo-access">
-                <button type="button" className="login-demo-toggle" onClick={() => setShowDemoAccess((value) => !value)}>
-                  {showDemoAccess ? "Ocultar accesos de prueba" : "Mostrar accesos de prueba"}
-                </button>
-
-                {showDemoAccess && (
-                  <div className="login-demo-box">
-                    <strong>Accesos solo para desarrollo</strong>
-                    {demoCredentials.map((credential) => (
-                      <p key={credential.email}>
-                        {credential.role}: {credential.email} / {credential.password}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </form>
         ) : (
           <form className="login-form-card" onSubmit={handleClientLogin}>
@@ -244,23 +182,12 @@ export default function Login() {
 
             <label>
               Nombre
-              <input
-                value={clientName}
-                onChange={(event) => setClientName(event.target.value)}
-                placeholder="Ej. Carlos Mejía"
-                autoComplete="name"
-              />
+              <input value={clientName} onChange={(event) => setClientName(event.target.value)} placeholder="Ej. Carlos Mejía" autoComplete="name" />
             </label>
 
             <label>
               WhatsApp opcional
-              <input
-                value={clientPhone}
-                onChange={(event) => setClientPhone(event.target.value)}
-                placeholder="50400000000"
-                autoComplete="tel"
-                inputMode="tel"
-              />
+              <input value={clientPhone} onChange={(event) => setClientPhone(event.target.value)} placeholder="50400000000" autoComplete="tel" inputMode="tel" />
             </label>
 
             <button className="btn primary full login-submit-button" type="submit">

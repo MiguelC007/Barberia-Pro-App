@@ -7,11 +7,9 @@ import { createId } from "../utils/id";
 
 const SESSION_KEY = "spencer_barber_shop_session_v1";
 
-function findDemoUser(credentials: LoginCredentials) {
+function findLocalUser(credentials: LoginCredentials) {
   const email = credentials.email.trim().toLowerCase();
-  return demoUsers.find(
-    (user) => user.email?.toLowerCase() === email && user.password === credentials.password
-  );
+  return demoUsers.find((user) => user.email?.toLowerCase() === email && user.password === credentials.password);
 }
 
 export function isUsingDemoAuth(): boolean {
@@ -23,7 +21,7 @@ export async function loginWithEmail(credentials: LoginCredentials): Promise<Ses
 
   if (isFirebaseConfigured) {
     if (!firebaseAuth || !firestoreDb) {
-      throw new Error("Firebase no esta disponible en esta sesion.");
+      throw new Error("Firebase no está disponible en esta sesión.");
     }
 
     try {
@@ -35,7 +33,7 @@ export async function loginWithEmail(credentials: LoginCredentials): Promise<Ses
 
       const profile = profileSnap.data() as Partial<AppUser>;
       if (!profile.role || !profile.name) {
-        throw new Error("El perfil de usuario no tiene nombre o rol configurado.");
+        throw new Error("El perfil del usuario no tiene nombre o rol configurado.");
       }
 
       return {
@@ -50,7 +48,7 @@ export async function loginWithEmail(credentials: LoginCredentials): Promise<Ses
         isDemo: false
       };
     } catch (error) {
-      const fallback = findDemoUser(credentials);
+      const fallback = findLocalUser(credentials);
       if (fallback) {
         const { password: _password, ...user } = fallback;
         return { ...user, isDemo: true };
@@ -60,14 +58,14 @@ export async function loginWithEmail(credentials: LoginCredentials): Promise<Ses
         throw error;
       }
 
-      throw new Error("No se pudo iniciar sesion.");
+      throw new Error("No se pudo iniciar sesión.");
     }
   }
 
-  const found = findDemoUser(credentials);
+  const found = findLocalUser(credentials);
 
   if (!found) {
-    throw new Error("Credenciales incorrectas. Revisá el correo y contraseña demo.");
+    throw new Error("Credenciales incorrectas. Revisa el correo y la contraseña.");
   }
 
   const { password: _password, ...user } = found;
@@ -119,7 +117,7 @@ export function clearSession(): void {
   localStorage.removeItem(SESSION_KEY);
   if (firebaseAuth) {
     signOut(firebaseAuth).catch(() => {
-      // La sesion local ya fue limpiada; Firebase puede fallar offline sin bloquear la app.
+      // La sesión local ya fue limpiada; Firebase puede fallar offline sin bloquear la app.
     });
   }
 }

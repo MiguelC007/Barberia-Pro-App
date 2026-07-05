@@ -9,6 +9,8 @@ export function addService(input: {
   price: number;
   duration: number;
   icon: string;
+  imageUrl?: string;
+  imageStoragePath?: string;
 }): void {
   if (!input.name.trim()) {
     throw new Error("El nombre del servicio es obligatorio.");
@@ -17,7 +19,7 @@ export function addService(input: {
     throw new Error("El precio debe ser mayor que cero.");
   }
   if (!Number.isFinite(input.duration) || input.duration <= 0) {
-    throw new Error("La duracion debe ser mayor que cero.");
+    throw new Error("La duración debe ser mayor que cero.");
   }
 
   const service: Service = {
@@ -26,13 +28,34 @@ export function addService(input: {
     description: input.description.trim(),
     price: input.price,
     duration: input.duration,
-    icon: input.icon.trim() || "✂️",
+    icon: input.icon.trim() || "SB",
+    imageUrl: input.imageUrl?.trim() || "",
+    imageStoragePath: input.imageStoragePath?.trim() || "",
     active: true
   };
 
   mutateAppState((state) => ({
     ...state,
     services: [...state.services, service]
+  }));
+}
+
+export function updateService(serviceId: string, updates: Partial<Omit<Service, "id">>): void {
+  mutateAppState((state) => ({
+    ...state,
+    services: state.services.map((service) =>
+      service.id === serviceId
+        ? {
+            ...service,
+            ...updates,
+            name: updates.name?.trim() || service.name,
+            description: updates.description?.trim() ?? service.description,
+            icon: updates.icon?.trim() || service.icon,
+            imageUrl: updates.imageUrl?.trim() ?? service.imageUrl,
+            imageStoragePath: updates.imageStoragePath?.trim() ?? service.imageStoragePath
+          }
+        : service
+    )
   }));
 }
 

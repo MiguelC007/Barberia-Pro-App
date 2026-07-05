@@ -6,10 +6,10 @@ function appointmentStatusLabel(status: AppointmentStatus): string {
     pending: "Pendiente",
     scheduled: "Programada",
     confirmed: "Confirmada",
-    checked_in: "Llego",
-    in_service: "En atencion",
+    checked_in: "Llegó",
+    in_service: "En atención",
     completed: "Finalizada",
-    no_show: "No llego",
+    no_show: "No llegó",
     cancelled: "Cancelada"
   };
   return labels[status];
@@ -25,7 +25,7 @@ export function AppointmentCard({ appointment, state }: { appointment: Appointme
       <div>
         <strong>{appointment.clientName}</strong>
         <p>
-          {appointment.date} - {appointment.time} - {service?.name || "Servicio"} - {barber?.name || "Sin barbero"}
+          {appointment.date} · {appointment.time} · {service?.name || "Servicio"} · {barber?.name || "Sin barbero"}
         </p>
         <small>Origen: {appointment.source}</small>
         <MediaReferenceList items={appointment.mediaReferences || []} title="Referencia del cliente" />

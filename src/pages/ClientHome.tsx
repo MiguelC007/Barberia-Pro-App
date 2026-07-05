@@ -1,38 +1,25 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  CalendarCheck,
-  Clock,
-  MessageCircle,
-  QrCode,
-  Scissors,
-  Sparkles,
-  Ticket,
-} from "lucide-react";
-
+import { CalendarCheck, Clock, MessageCircle, QrCode, Scissors, Sparkles, Ticket } from "lucide-react";
 import { BarberCard } from "../components/BarberCard";
 import { QRCheckIn } from "../components/QRCheckIn";
 import { ServiceCard } from "../components/ServiceCard";
 import { StatCard } from "../components/StatCard";
+import { useLiveNow } from "../hooks/useLiveNow";
 import { useAppData } from "../services/localStore";
 import { calculateNextTurnEstimate, calculateQueueTimeline } from "../utils/queueTimeline";
 import { minutesToText } from "../utils/time";
 import { whatsappLink } from "../utils/format";
 
-const trendingCuts = [
-  "Low Fade",
-  "Mid Fade",
-  "Taper Fade",
-  "French Crop",
-  "Corte + Barba",
-  "Burst Fade",
-];
+const trendingCuts = ["Low Fade", "Mid Fade", "Taper Fade", "French Crop", "Corte + barba", "Burst Fade"];
 
 export default function ClientHome() {
   const state = useAppData();
   const navigate = useNavigate();
+  const now = useLiveNow(30000);
 
-  const timeline = calculateQueueTimeline(state);
-  const nextTurnEstimate = calculateNextTurnEstimate(state);
+  const timeline = useMemo(() => calculateQueueTimeline(state, now), [state, now]);
+  const nextTurnEstimate = useMemo(() => calculateNextTurnEstimate(state, now), [state, now]);
   const waiting = timeline.length;
   const available = state.barbers.filter((barber) => barber.status === "available").length;
   const activeServices = state.services.filter((service) => service.active);
@@ -40,8 +27,13 @@ export default function ClientHome() {
 
   const primaryMessage =
     waiting > 0
-      ? `Hay ${waiting} cliente${waiting === 1 ? "" : "s"} esperando. Tu tiempo estimado sería ${eta}.`
-      : "No hay espera por ahora. Podés tomar turno o agendar tu cita.";
+      ? `Hay ${waiting} cliente${waiting === 1 ? "" : "s"} esperando. Atención aproximada: ${eta}.`
+      : "No hay espera por ahora. Puedes tomar un turno o agendar tu cita.";
+
+  const availabilityLabel =
+    available > 0
+      ? `${available} disponible${available === 1 ? "" : "s"}`
+      : "Todos los barberos están ocupados. Te atenderemos por orden de llegada.";
 
   return (
     <div className="grid gap-lg home-pro">
@@ -49,13 +41,13 @@ export default function ClientHome() {
         <div className="home-hero-copy">
           <span className="badge badge-warning hero-eyebrow">
             <Sparkles size={15} />
-            App privada de Spencer Barber Shop
+            Acceso privado de Spencer Barber Shop
           </span>
 
           <h2 className="hero-title">{state.business.appName}</h2>
 
           <p className="hero-subtitle">
-            Tomá tu turno al llegar, reservá tu cita y recibí una atención más ordenada sin perder tiempo.
+            Toma tu turno al llegar, agenda con anticipación y sigue tu atención en tiempo real.
           </p>
 
           <div className="trust-row">
@@ -65,11 +57,11 @@ export default function ClientHome() {
             </span>
             <span>
               <Clock size={16} />
-              Espera estimada
+              Tiempo estimado en vivo
             </span>
             <span>
               <QrCode size={16} />
-              QR de entrada
+              Ingreso por QR
             </span>
           </div>
 
@@ -86,10 +78,7 @@ export default function ClientHome() {
 
             <a
               className="btn blue"
-              href={whatsappLink(
-                state.business.whatsapp,
-                `Hola, quiero informacion de ${state.business.appName}`
-              )}
+              href={whatsappLink(state.business.whatsapp, `Hola, quiero información de ${state.business.appName}.`)}
               target="_blank"
               rel="noreferrer"
             >
@@ -102,29 +91,29 @@ export default function ClientHome() {
         <aside className="hero-live-card">
           <div className="live-pill">En vivo</div>
           <h3>{primaryMessage}</h3>
-          <p>{state.business.publicMessage}</p>
+          <p>Entra a la lista de espera y mira tu tiempo estimado en vivo.</p>
 
           <div className="live-meta-grid">
             <div>
               <strong>{waiting}</strong>
-              <span>en espera</span>
+              <span>esperando</span>
             </div>
             <div>
-              <strong>{available}</strong>
-              <span>disponible{available === 1 ? "" : "s"}</span>
+              <strong>{available > 0 ? available : "—"}</strong>
+              <span>{availabilityLabel}</span>
             </div>
             <div>
               <strong>{eta}</strong>
-              <span>espera aprox.</span>
+              <span>tiempo estimado</span>
             </div>
           </div>
         </aside>
       </section>
 
       <section className="stats-grid home-stats-row">
-        <StatCard label="En espera" value={waiting} />
-        <StatCard label="Barberos disponibles" value={available} />
-        <StatCard label="Espera aproximada" value={eta} />
+        <StatCard label="Clientes esperando" value={waiting} />
+        <StatCard label="Barberos disponibles" value={available > 0 ? available : "—"} />
+        <StatCard label="Tiempo estimado" value={eta} />
         <StatCard label="Servicios activos" value={activeServices.length} />
       </section>
 
@@ -134,7 +123,7 @@ export default function ClientHome() {
             <div>
               <span className="section-kicker">Servicios</span>
               <h3>Servicios disponibles</h3>
-              <p>Precios y duración configurados para la barbería.</p>
+              <p>Precios, duración e imagen uniforme para presentar la barbería con estándar profesional.</p>
             </div>
           </div>
 
@@ -149,8 +138,8 @@ export default function ClientHome() {
           <div className="section-heading">
             <div>
               <span className="section-kicker">Equipo</span>
-              <h3>Barbero disponible</h3>
-              <p>Disponibilidad actual para turnos y citas.</p>
+              <h3>Barberos activos</h3>
+              <p>{available > 0 ? "Disponibilidad actual para turnos y citas." : "Todos están ocupados. Te atenderemos por orden de llegada."}</p>
             </div>
           </div>
 
@@ -158,7 +147,7 @@ export default function ClientHome() {
             {state.barbers
               .filter((barber) => barber.active)
               .map((barber) => (
-                <BarberCard key={barber.id} barber={barber} />
+                <BarberCard key={barber.id} barber={barber} now={now} />
               ))}
           </div>
         </div>
@@ -168,14 +157,11 @@ export default function ClientHome() {
         <div className="qr-feature-panel">
           <div className="qr-feature-copy">
             <span className="section-kicker">Entrada rápida</span>
-            <h3>Escaneá el QR y tomá tu turno automáticamente</h3>
-            <p>
-              El cliente no necesita llenar formularios para entrar a la lista. Escanea, recibe su ticket y puede ver su
-              tiempo estimado.
-            </p>
+            <h3>Escanea el QR y recibe tu ticket automáticamente</h3>
+            <p>El cliente entra a la lista de espera con un solo escaneo y puede ver su posición, estado y tiempo estimado en vivo.</p>
 
             <button className="btn primary" onClick={() => navigate("/turno")}>
-              Probar QR como cliente
+              Ver flujo del ticket
             </button>
           </div>
 
@@ -185,9 +171,9 @@ export default function ClientHome() {
         <div className="panel home-panel">
           <div className="section-heading">
             <div>
-              <span className="section-kicker">Recomendaciones</span>
+              <span className="section-kicker">Inspiración</span>
               <h3>Cortes en tendencia</h3>
-              <p>Ideas rápidas que el cliente puede pedir en turno, cita o chat.</p>
+              <p>Ideas rápidas para pedir por turno, cita o mensaje.</p>
             </div>
           </div>
 
@@ -198,7 +184,7 @@ export default function ClientHome() {
                   <Scissors size={20} />
                 </div>
                 <strong>{cut}</strong>
-                <p>Disponible para pedir con Spencer.</p>
+                <p>Disponible para solicitar con Spencer.</p>
               </article>
             ))}
           </div>

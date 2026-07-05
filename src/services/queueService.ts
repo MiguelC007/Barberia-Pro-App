@@ -14,6 +14,7 @@ import {
 } from "../utils/queueTimeline";
 
 const ACTIVE_TICKET_KEY = "spencer_barber_shop_active_ticket_v1";
+const DEVICE_KEY = "spencer_barber_shop_device_v1";
 const DEFAULT_BARBERSHOP_ID = "spencer-barber-shop";
 
 function readActiveTicketId(): string | null {
@@ -30,12 +31,24 @@ function clearActiveTicketId(ticketId?: string): void {
   }
 }
 
-function createTicketCode(queue: QueueItem[], prefix: string, sequence: number, now: number): string {
-  let code = generateTicketCode(prefix, sequence, now);
-  while (queue.some((item) => item.ticketCode === code)) {
-    code = generateTicketCode(prefix, sequence, now);
+function getDeviceId(): string {
+  const existing = localStorage.getItem(DEVICE_KEY);
+  if (existing) return existing;
+  const deviceId = createId("device");
+  localStorage.setItem(DEVICE_KEY, deviceId);
+  return deviceId;
+}
+
+function createTicketCode(queue: QueueItem[], prefix: string, initialSequence: number, now: number): { ticketCode: string; sequence: number } {
+  let sequence = initialSequence;
+  let ticketCode = generateTicketCode(prefix, sequence, now);
+
+  while (queue.some((item) => item.ticketCode === ticketCode)) {
+    sequence += 1;
+    ticketCode = generateTicketCode(prefix, sequence, now);
   }
-  return code;
+
+  return { ticketCode, sequence };
 }
 
 function activeServiceId(serviceId?: string): string {
@@ -54,20 +67,32 @@ function validatePreferredBarber(preferredBarberId?: string): string | null {
   const state = getAppState();
   const preferredBarber = state.barbers.find((item) => item.id === preferredBarberId && item.active);
   if (!preferredBarber) {
-    throw new Error("El barbero seleccionado no esta disponible en la app.");
+    throw new Error("El barbero seleccionado no está disponible en el sistema.");
   }
   return preferredBarber.id;
+}
+
+function getOpenTicketForBarber(barberId: string): QueueItem | null {
+  const state = getAppState();
+  return (
+    state.queue.find(
+      (item) =>
+        item.assignedBarberId === barberId &&
+        ["next", "called", "in_service"].includes(normalizeTicketStatus(item.status))
+    ) || null
+  );
 }
 
 function findDuplicateTicket(input: {
   clientName: string;
   clientPhone?: string;
   session?: SessionUser | null;
+  deviceId?: string;
   allowDeviceTicketReuse?: boolean;
 }): QueueItem | null {
   const state = getAppState();
   const localTicketId = readActiveTicketId();
-  const clientName = input.clientName.trim().toLowerCase();
+  const normalizedName = input.clientName.trim().toLowerCase();
   const clientPhone = input.clientPhone?.trim();
 
   return (
@@ -81,9 +106,10 @@ function findDuplicateTicket(input: {
     state.queue.find(
       (item) =>
         isActiveTicketStatus(item.status) &&
-        ((input.session?.id && item.clientId === input.session.id) ||
+        ((input.deviceId && item.deviceId === input.deviceId) ||
+          (input.session?.id && item.clientId === input.session.id) ||
           (clientPhone && (item.clientPhone === clientPhone || item.whatsapp === clientPhone)) ||
-          (clientName && item.clientName.trim().toLowerCase() === clientName))
+          (normalizedName && item.clientName.trim().toLowerCase() === normalizedName))
     ) ||
     null
   );
@@ -117,8 +143,9 @@ export function createQueueTicket(input: {
   const serviceId = activeServiceId(input.serviceId);
   const service = current.services.find((item) => item.id === serviceId);
   const preferredBarberId = validatePreferredBarber(input.preferredBarberId);
-  const clientName = input.clientName?.trim() || input.session?.name || "Cliente";
+  const clientName = input.clientName?.trim() || input.session?.name || "";
   const clientPhone = input.clientPhone?.trim() || input.session?.phone || "";
+  const deviceId = getDeviceId();
 
   if (input.reuseDeviceTicket) {
     const active = getActiveTicket();
@@ -129,28 +156,31 @@ export function createQueueTicket(input: {
     clientName,
     clientPhone,
     session: input.session,
+    deviceId,
     allowDeviceTicketReuse: Boolean(input.reuseDeviceTicket)
   });
   if (duplicate) {
-    if (input.reuseDeviceTicket) saveActiveTicketId(duplicate.id);
+    if (input.reuseDeviceTicket || input.source === "qr") {
+      saveActiveTicketId(duplicate.id);
+    }
     return duplicate;
   }
 
   const now = Date.now();
-  const dailySequenceNumber = nextDailySequence(current.queue, now);
-  const ticketCode = createTicketCode(current.queue, getBusinessPrefix(current), dailySequenceNumber, now);
+  const { ticketCode, sequence } = createTicketCode(current.queue, getBusinessPrefix(current), nextDailySequence(current.queue, now), now);
 
   const item: QueueItem = {
     id: createId("ticket"),
     barberShopId: DEFAULT_BARBERSHOP_ID,
     ticketCode,
-    dailySequenceNumber,
+    dailySequenceNumber: sequence,
     clientId: input.session?.id || null,
     clientName,
     clientPhone,
     whatsapp: clientPhone,
+    deviceId,
     source: input.source,
-    serviceId: serviceId,
+    serviceId,
     serviceName: service?.name || "Servicio",
     estimatedDurationMinutes: getServiceDurationMinutes(service),
     preferredBarberId,
@@ -158,7 +188,7 @@ export function createQueueTicket(input: {
     status: "waiting",
     note: input.note?.trim() || "",
     notes: input.note?.trim() || "",
-    position: dailySequenceNumber,
+    position: sequence,
     createdAt: now,
     waitStartedAt: now,
     joinedAt: now,
@@ -224,7 +254,10 @@ export function createManualTicket(input: {
   });
 }
 
-export function updateTicketDetails(ticketId: string, updates: Partial<Pick<QueueItem, "clientName" | "clientPhone" | "serviceId" | "preferredBarberId" | "note" | "notes">>): void {
+export function updateTicketDetails(
+  ticketId: string,
+  updates: Partial<Pick<QueueItem, "clientName" | "clientPhone" | "serviceId" | "preferredBarberId" | "note" | "notes">>
+): void {
   mutateAppState((state) => ({
     ...state,
     queue: state.queue.map((item) => {
@@ -264,47 +297,128 @@ export function updateTicketStatus(ticketId: string, status: QueueStatus): void 
   }
 }
 
+export function takeNextForBarber(barberId: string): QueueItem {
+  const current = getAppState();
+  const barber = current.barbers.find((item) => item.id === barberId && item.active);
+  if (!barber) {
+    throw new Error("El barbero no existe o está inactivo.");
+  }
+  if (barber.status === "busy") {
+    throw new Error("El barbero ya está atendiendo un servicio.");
+  }
+
+  const open = getOpenTicketForBarber(barberId);
+  if (open && ["next", "called"].includes(normalizeTicketStatus(open.status))) {
+    return open;
+  }
+  if (open?.status === "in_service") {
+    throw new Error("El barbero ya tiene un cliente en atención.");
+  }
+
+  const next = getNextQueueItemForBarber(sortQueueFIFO(current.queue), barber);
+  if (!next) {
+    throw new Error("No hay clientes disponibles para este barbero.");
+  }
+
+  mutateAppState((state) => ({
+    ...state,
+    queue: state.queue.map((item) =>
+      item.id === next.id
+        ? {
+            ...item,
+            status: "next",
+            assignedBarberId: barber.id
+          }
+        : item
+    )
+  }));
+
+  return {
+    ...next,
+    status: "next",
+    assignedBarberId: barber.id
+  };
+}
+
+export function callReservedTicket(barberId: string): QueueItem {
+  const openTicket = getOpenTicketForBarber(barberId);
+  if (!openTicket) {
+    throw new Error("Primero toma el siguiente ticket.");
+  }
+  if (openTicket.status === "in_service") {
+    return openTicket;
+  }
+
+  const now = Date.now();
+  mutateAppState((state) => ({
+    ...state,
+    queue: state.queue.map((item) =>
+      item.id === openTicket.id
+        ? {
+            ...item,
+            status: "called",
+            calledAt: now
+          }
+        : item
+    )
+  }));
+
+  return {
+    ...openTicket,
+    status: "called",
+    calledAt: now
+  };
+}
+
+export function startServiceForBarber(barberId: string): QueueItem {
+  const barberState = getAppState();
+  const barber = barberState.barbers.find((item) => item.id === barberId && item.active);
+  if (!barber) {
+    throw new Error("El barbero no existe o está inactivo.");
+  }
+
+  const reservedTicket = getOpenTicketForBarber(barberId) || takeNextForBarber(barberId);
+  const now = Date.now();
+
+  mutateAppState((state) => ({
+    ...state,
+    queue: state.queue.map((item) =>
+      item.id === reservedTicket.id
+        ? {
+            ...item,
+            status: "in_service",
+            assignedBarberId: barber.id,
+            calledAt: item.calledAt || now,
+            startedAt: now,
+            serviceStartedAt: now
+          }
+        : item
+    ),
+    barbers: state.barbers.map((item) =>
+      item.id === barber.id
+        ? {
+            ...item,
+            status: "busy",
+            currentQueueId: reservedTicket.id,
+            currentClientName: reservedTicket.clientName,
+            serviceStartedAt: now
+          }
+        : item
+    )
+  }));
+
+  return {
+    ...reservedTicket,
+    status: "in_service",
+    assignedBarberId: barber.id,
+    calledAt: reservedTicket.calledAt || now,
+    startedAt: now,
+    serviceStartedAt: now
+  };
+}
+
 export function callNextForBarber(barberId: string): void {
-  mutateAppState((state) => {
-    const barber = state.barbers.find((item) => item.id === barberId && item.active);
-    if (!barber || barber.status !== "available") {
-      throw new Error("El barbero no esta disponible.");
-    }
-
-    const next = getNextQueueItemForBarber(sortQueueFIFO(state.queue), barber);
-    if (!next) {
-      throw new Error("No hay clientes disponibles en los turnos para este barbero.");
-    }
-
-    const now = Date.now();
-
-    return {
-      ...state,
-      queue: state.queue.map((item) =>
-        item.id === next.id
-          ? {
-              ...item,
-              status: "in_service",
-              assignedBarberId: barber.id,
-              calledAt: now,
-              startedAt: now,
-              serviceStartedAt: now
-            }
-          : item
-      ),
-      barbers: state.barbers.map((item) =>
-        item.id === barber.id
-          ? {
-              ...item,
-              status: "busy",
-              currentQueueId: next.id,
-              currentClientName: next.clientName,
-              serviceStartedAt: now
-            }
-          : item
-      )
-    };
-  });
+  startServiceForBarber(barberId);
 }
 
 export function finishServiceForBarber(barberId: string): void {
@@ -313,7 +427,7 @@ export function finishServiceForBarber(barberId: string): void {
   mutateAppState((state) => {
     const barber = state.barbers.find((item) => item.id === barberId && item.active);
     if (!barber || barber.status !== "busy" || !barber.currentQueueId) {
-      throw new Error("Este barbero no tiene servicio activo.");
+      throw new Error("Este barbero no tiene un servicio activo.");
     }
 
     const now = Date.now();
@@ -350,6 +464,22 @@ export function finishServiceForBarber(barberId: string): void {
   if (closedTicketId) {
     clearActiveTicketId(closedTicketId);
   }
+}
+
+export function releaseBarberTicket(barberId: string): void {
+  mutateAppState((state) => ({
+    ...state,
+    queue: state.queue.map((item) =>
+      item.assignedBarberId === barberId && ["next", "called"].includes(normalizeTicketStatus(item.status))
+        ? {
+            ...item,
+            status: "waiting",
+            assignedBarberId: null,
+            calledAt: null
+          }
+        : item
+    )
+  }));
 }
 
 export function skipTicket(ticketId: string): void {

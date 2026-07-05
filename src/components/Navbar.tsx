@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Home, ListOrdered, MessageCircle, QrCode, Scissors, Shield, UserCog } from "lucide-react";
+import { CalendarDays, Home, ListOrdered, MessageCircle, MonitorPlay, QrCode, Scissors, Shield, UserCog } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { canManageBusiness, canOperateQueue, canViewSuperAdmin } from "../utils/permissions";
 
@@ -10,11 +10,12 @@ export function Navbar() {
     { to: "/", label: "Inicio", icon: Home, show: true },
     { to: "/fila", label: "Turnos", icon: ListOrdered, show: true },
     { to: "/citas", label: "Citas", icon: CalendarDays, show: true },
-    { to: "/chatbot", label: "Chat Bot", icon: MessageCircle, show: true },
+    { to: "/chatbot", label: "Asistente", icon: MessageCircle, show: true },
     { to: "/pago", label: "Pago QR", icon: QrCode, show: true },
     { to: "/barbero", label: "Barbero", icon: Scissors, show: canOperateQueue(role) },
     { to: "/dueno", label: "Dueño", icon: UserCog, show: canManageBusiness(role) },
-    { to: "/super-admin", label: "Super Admin", icon: Shield, show: canViewSuperAdmin(role) }
+    { to: "/tv", label: "Pantalla", icon: MonitorPlay, show: canManageBusiness(role) },
+    { to: "/super-admin", label: "Superadmin", icon: Shield, show: canViewSuperAdmin(role) }
   ];
 
   return (
