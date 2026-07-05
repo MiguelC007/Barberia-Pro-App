@@ -1,38 +1,45 @@
 import type { Service } from "../types";
 
-function placeholderLabel(service: Service): string {
-  return service.name?.trim() || "Servicio";
+function safeAccent(service: Service): string {
+  const seed = `${service.name || "Servicio"}${service.icon || "SB"}`;
+  let hash = 0;
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = seed.charCodeAt(index) + ((hash << 5) - hash);
+  }
+
+  const accents = ["#f97316", "#f59e0b", "#fb923c", "#fdba74"];
+  return accents[Math.abs(hash) % accents.length];
 }
-
-const basePlaceholderStart = `
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
-    <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#131318" />
-        <stop offset="55%" stop-color="#25252d" />
-        <stop offset="100%" stop-color="#f97316" />
-      </linearGradient>
-    </defs>
-    <rect width="1200" height="800" fill="url(#g)" />
-    <circle cx="980" cy="160" r="125" fill="rgba(255,255,255,0.08)" />
-    <circle cx="220" cy="620" r="160" fill="rgba(255,255,255,0.05)" />
-`;
-
-const basePlaceholderEnd = `
-  </svg>
-`;
 
 export function getServiceImage(service: Service): string {
   if (service.imageUrl?.trim()) {
     return service.imageUrl;
   }
 
+  const accent = safeAccent(service);
   const svg = `
-    ${basePlaceholderStart}
-    <text x="90" y="390" fill="#ffffff" font-family="Arial, sans-serif" font-size="76" font-weight="700">${placeholderLabel(service)}</text>
-    <text x="90" y="470" fill="#fed7aa" font-family="Arial, sans-serif" font-size="34">Spencer Barber Shop</text>
-    <text x="90" y="528" fill="#fde68a" font-family="Arial, sans-serif" font-size="28">${service.duration} min · L ${service.price}</text>
-    ${basePlaceholderEnd}
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#10131c" />
+          <stop offset="52%" stop-color="#1f2430" />
+          <stop offset="100%" stop-color="${accent}" />
+        </linearGradient>
+        <radialGradient id="glow" cx="34%" cy="28%" r="70%">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.24)" />
+          <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+        </radialGradient>
+      </defs>
+      <rect width="1200" height="900" fill="url(#bg)" />
+      <rect width="1200" height="900" fill="url(#glow)" opacity="0.34" />
+      <circle cx="1010" cy="168" r="132" fill="rgba(255,255,255,0.09)" />
+      <circle cx="190" cy="690" r="190" fill="rgba(255,255,255,0.06)" />
+      <path d="M390 620 822 286" stroke="rgba(255,255,255,0.22)" stroke-width="34" stroke-linecap="round" />
+      <path d="M434 286 866 620" stroke="rgba(255,255,255,0.16)" stroke-width="34" stroke-linecap="round" />
+      <circle cx="374" cy="650" r="62" fill="rgba(2,6,23,0.38)" stroke="rgba(255,255,255,0.18)" stroke-width="14" />
+      <circle cx="890" cy="650" r="62" fill="rgba(2,6,23,0.38)" stroke="rgba(255,255,255,0.18)" stroke-width="14" />
+    </svg>
   `;
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
