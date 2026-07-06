@@ -12,6 +12,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ""
 };
+const firestoreDatabaseId = import.meta.env.VITE_FIRESTORE_DATABASE_ID || "default";
 
 export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey &&
@@ -29,7 +30,7 @@ export const firebaseApp: FirebaseApp | null = isFirebaseConfigured
   : null;
 
 export const firebaseAuth: Auth | null = firebaseApp ? getAuth(firebaseApp) : null;
-export const firestoreDb: Firestore | null = firebaseApp ? getFirestore(firebaseApp) : null;
+export const firestoreDb: Firestore | null = firebaseApp ? getFirestore(firebaseApp, firestoreDatabaseId) : null;
 export const firebaseStorage: FirebaseStorage | null = firebaseApp ? getStorage(firebaseApp) : null;
 
 export async function ensureFirebaseAuth(): Promise<User | null> {
@@ -51,6 +52,7 @@ export function getFirebaseConfigStatus() {
     hasApp: Boolean(firebaseApp),
     hasAuth: Boolean(firebaseAuth),
     hasFirestore: Boolean(firestoreDb),
+    firestoreDatabaseId,
     hasStorage: Boolean(firebaseStorage)
   };
 }

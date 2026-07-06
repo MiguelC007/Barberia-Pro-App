@@ -1,4 +1,4 @@
-const CACHE_NAME = "barberia-pro-app-v1";
+const CACHE_NAME = "barberia-pro-app-v2";
 const ASSETS = [
   "/",
   "/index.html",
@@ -9,7 +9,7 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS.map((asset) => new Request(asset, { cache: "reload" })))));
   self.skipWaiting();
 });
 
@@ -25,17 +25,24 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request, { cache: "no-store" })
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", copy));
+          return response;
+        })
+        .catch(() => caches.match("/index.html"))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
 
-      return fetch(event.request).catch(() => {
-        if (event.request.mode === "navigate") {
-          return caches.match("/index.html");
-        }
-
-        return Response.error();
-      });
+      return fetch(event.request).catch(() => Response.error());
     })
   );
 });
