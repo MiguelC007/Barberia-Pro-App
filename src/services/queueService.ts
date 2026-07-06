@@ -431,6 +431,8 @@ export function finishServiceForBarber(barberId: string): void {
 
     const now = Date.now();
     closedTicketId = barber.currentQueueId;
+    const currentTicket = state.queue.find((item) => item.id === barber.currentQueueId);
+    const appointmentId = currentTicket?.note?.startsWith("appointment:") ? currentTicket.note.replace("appointment:", "") : null;
 
     return {
       ...state,
@@ -444,6 +446,21 @@ export function finishServiceForBarber(barberId: string): void {
           completedAt: now
         };
         return updatedTicket;
+      }),
+      appointments: state.appointments.map((appointment) => {
+        const isLinkedAppointment = appointmentId
+          ? appointment.id === appointmentId
+          : appointment.status === "in_service" &&
+            appointment.barberId === barber.id &&
+            appointment.clientName === barber.currentClientName;
+
+        return isLinkedAppointment
+          ? {
+              ...appointment,
+              status: "completed",
+              completedAt: now
+            }
+          : appointment;
       }),
       barbers: state.barbers.map((item) =>
         item.id === barber.id
