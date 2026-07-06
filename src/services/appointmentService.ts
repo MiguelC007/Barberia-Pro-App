@@ -1,7 +1,17 @@
-import type { Appointment, SessionUser } from "../types";
+import type { Appointment, QueueItem, SessionUser } from "../types";
 import { getAppState, mutateAppState } from "./localStore";
+import { syncQueueItemNow } from "./cloudSync";
 import { createId } from "../utils/id";
-import { calculateAvailableSlots, formatTimeInput, getServiceDurationMinutes, SERVICE_BUFFER_MINUTES } from "../utils/queueTimeline";
+import {
+  calculateAvailableSlots,
+  formatTimeInput,
+  generateTicketCode,
+  getBusinessPrefix,
+  getServiceDurationMinutes,
+  nextDailySequence,
+  SERVICE_BUFFER_MINUTES
+} from "../utils/queueTimeline";
+import { sortQueueFIFO } from "../utils/fifo";
 
 function appointmentDateTime(date: string, time: string): Date {
   return new Date(`${date}T${time || "00:00"}:00`);
@@ -135,6 +145,100 @@ export function createAppointment(input: {
   }));
 
   return appointment;
+}
+
+export function startAppointmentNow(appointmentId: string): QueueItem {
+  const current = getAppState();
+  const appointment = current.appointments.find((item) => item.id === appointmentId);
+
+  if (!appointment) {
+    throw new Error("No se encontró la cita.");
+  }
+  if (isClosedAppointment(appointment.status)) {
+    throw new Error("Esta cita ya está cerrada.");
+  }
+
+  const barber = current.barbers.find((item) => item.id === appointment.barberId && item.active);
+  const service = current.services.find((item) => item.id === appointment.serviceId && item.active);
+
+  if (!barber) {
+    throw new Error("El barbero de esta cita no está disponible.");
+  }
+  if (!service) {
+    throw new Error("El servicio de esta cita no está disponible.");
+  }
+  if (barber.status === "busy" || barber.currentQueueId) {
+    throw new Error("Este barbero ya tiene un cliente en atención.");
+  }
+
+  const now = Date.now();
+  const sequence = nextDailySequence(current.queue, now);
+  const ticketCode = generateTicketCode(getBusinessPrefix(current), sequence, now);
+
+  const queueItem: QueueItem = {
+    id: createId("ticket"),
+    barberShopId: "spencer-barber-shop",
+    ticketCode,
+    dailySequenceNumber: sequence,
+    clientId: appointment.clientId || null,
+    clientName: appointment.clientName,
+    clientPhone: appointment.clientPhone || "",
+    whatsapp: appointment.clientPhone || "",
+    deviceId: `appointment_${appointment.id}`,
+    source: "manual",
+    serviceId: service.id,
+    serviceName: service.name,
+    estimatedDurationMinutes: getServiceDurationMinutes(service),
+    preferredBarberId: barber.id,
+    assignedBarberId: barber.id,
+    status: "in_service",
+    note: `appointment:${appointment.id}`,
+    notes: "Cita atendida antes de la hora programada.",
+    position: sequence,
+    createdAt: now,
+    waitStartedAt: now,
+    joinedAt: now,
+    estimatedStartAt: now,
+    estimatedEndAt: now + getServiceDurationMinutes(service) * 60000,
+    calledAt: now,
+    startedAt: now,
+    serviceStartedAt: now,
+    serviceEndedAt: null,
+    finishedAt: null,
+    completedAt: null,
+    skippedAt: null,
+    cancelledAt: null,
+    mediaReferences: appointment.mediaReferences || []
+  };
+
+  mutateAppState((state) => ({
+    ...state,
+    queue: sortQueueFIFO([...state.queue, queueItem]),
+    appointments: state.appointments.map((item) =>
+      item.id === appointment.id
+        ? {
+            ...item,
+            status: "in_service",
+            checkedInAt: item.checkedInAt || now,
+            startedAt: now
+          }
+        : item
+    ),
+    barbers: state.barbers.map((item) =>
+      item.id === barber.id
+        ? {
+            ...item,
+            status: "busy",
+            currentQueueId: queueItem.id,
+            currentClientName: queueItem.clientName,
+            serviceStartedAt: now
+          }
+        : item
+    )
+  }));
+  void syncQueueItemNow(queueItem);
+
+  return queueItem;
 }
 
 export function markAppointmentCheckedIn(appointmentId: string): void {
