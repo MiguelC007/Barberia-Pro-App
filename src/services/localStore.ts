@@ -13,6 +13,47 @@ function cloneInitialState(): AppState {
   return JSON.parse(JSON.stringify(initialAppState)) as AppState;
 }
 
+function repairState(state: AppState): AppState {
+  const seed = cloneInitialState();
+  let repaired = false;
+
+  const next: AppState = {
+    ...seed,
+    ...state,
+    business: {
+      ...seed.business,
+      ...state.business
+    },
+    paymentSettings: {
+      ...seed.paymentSettings,
+      ...state.paymentSettings
+    },
+    users: Array.isArray(state.users) && state.users.length ? state.users : seed.users,
+    barbers: Array.isArray(state.barbers) && state.barbers.length ? state.barbers : seed.barbers,
+    services: Array.isArray(state.services) && state.services.length ? state.services : seed.services,
+    inspiration: Array.isArray(state.inspiration) && state.inspiration.length ? state.inspiration : seed.inspiration,
+    queue: Array.isArray(state.queue) ? state.queue : [],
+    appointments: Array.isArray(state.appointments) ? state.appointments : [],
+    payments: Array.isArray(state.payments) ? state.payments : []
+  };
+
+  repaired =
+    !Array.isArray(state.users) ||
+    state.users.length === 0 ||
+    !Array.isArray(state.barbers) ||
+    state.barbers.length === 0 ||
+    !Array.isArray(state.services) ||
+    state.services.length === 0 ||
+    !Array.isArray(state.inspiration) ||
+    state.inspiration.length === 0;
+
+  if (repaired) {
+    console.info("Se restauró información base de la barbería para evitar una pantalla vacía.");
+  }
+
+  return next;
+}
+
 export function getAppState(): AppState {
   const raw = localStorage.getItem(STORE_KEY);
   if (!raw) {
@@ -28,9 +69,16 @@ export function getAppState(): AppState {
   }
 
   try {
-    cachedRaw = raw;
-    cachedState = JSON.parse(raw) as AppState;
-    return cachedState;
+    const parsed = JSON.parse(raw) as AppState;
+    const repaired = repairState(parsed);
+    cachedRaw = JSON.stringify(repaired);
+    cachedState = repaired;
+
+    if (cachedRaw !== raw) {
+      localStorage.setItem(STORE_KEY, cachedRaw);
+    }
+
+    return repaired;
   } catch {
     const seed = cloneInitialState();
     cachedRaw = JSON.stringify(seed);
@@ -41,12 +89,13 @@ export function getAppState(): AppState {
 }
 
 function writeState(state: AppState, options?: { skipCloudSync?: boolean }): void {
-  cachedState = state;
-  cachedRaw = JSON.stringify(state);
+  const repaired = repairState(state);
+  cachedState = repaired;
+  cachedRaw = JSON.stringify(repaired);
   localStorage.setItem(STORE_KEY, cachedRaw);
   listeners.forEach((listener) => listener());
   if (!options?.skipCloudSync) {
-    scheduleCloudSync(state);
+    scheduleCloudSync(repaired);
   }
 }
 
