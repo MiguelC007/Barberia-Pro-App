@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Save } from "lucide-react";
+import { Download, ExternalLink, Save, Share2 } from "lucide-react";
 import { MediaCapturePanel } from "../components/MediaCapturePanel";
 import { MediaReferenceList } from "../components/MediaReferenceList";
 import { TicketCard } from "../components/TicketCard";
@@ -8,6 +8,19 @@ import { createQueueTicket, getActiveTicket, updateTicketDetails } from "../serv
 import { attachMediaToTicket } from "../services/mediaService";
 import { useAppData } from "../services/localStore";
 import type { MediaReference } from "../types";
+
+type InstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
+function isIosDevice(): boolean {
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+}
+
+function isStandaloneMode(): boolean {
+  return window.matchMedia("(display-mode: standalone)").matches || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
+}
 
 export default function TicketEntryPage() {
   const state = useAppData();
@@ -18,6 +31,33 @@ export default function TicketEntryPage() {
   const [serviceId, setServiceId] = useState(state.services.find((service) => service.active)?.id || "");
   const [preferredBarberId, setPreferredBarberId] = useState("");
   const [message, setMessage] = useState("");
+  const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+
+  useEffect(() => {
+    setIsInstalled(isStandaloneMode());
+    setIsIos(isIosDevice());
+
+    function handleBeforeInstallPrompt(event: Event) {
+      event.preventDefault();
+      setInstallPrompt(event as InstallPromptEvent);
+    }
+
+    function handleAppInstalled() {
+      setInstallPrompt(null);
+      setIsInstalled(true);
+      setMessage("App instalada correctamente. Ya puedes abrirla desde tu pantalla principal.");
+    }
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -43,6 +83,22 @@ export default function TicketEntryPage() {
   }, [state.services]);
 
   const ticket = useMemo(() => state.queue.find((item) => item.id === ticketId) || getActiveTicket(), [state.queue, ticketId]);
+  const webUrl = useMemo(() => `${window.location.origin}/turno`, []);
+
+  async function installApp() {
+    if (!installPrompt) {
+      setMessage(
+        isIos
+          ? "En iPhone toca Compartir y luego Agregar a pantalla de inicio."
+          : "Si no aparece la instalación, usa Abrir versión web y guarda la página desde el menú del navegador."
+      );
+      return;
+    }
+
+    await installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+  }
 
   function saveDetails() {
     if (!ticket) return;
@@ -91,6 +147,35 @@ export default function TicketEntryPage() {
                 <p>Actualiza tu nombre, WhatsApp, servicio y barbero preferido si lo deseas.</p>
               </div>
             </div>
+
+            {!isInstalled && (
+              <>
+                <div className="alert info">
+                  <strong>Instala Spencer Barber Shop</strong>
+                  <p>
+                    Guarda esta app en tu celular para ver tu ticket y volver a entrar rápido cuando visites la barbería.
+                  </p>
+                  {isIos && (
+                    <p>
+                      En iPhone toca <strong>Compartir</strong> y luego <strong>Agregar a pantalla de inicio</strong>.
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-grid">
+                  <button className="btn primary full" onClick={installApp} type="button">
+                    {isIos ? <Share2 size={17} /> : <Download size={17} />}
+                    {isIos ? "Cómo instalar en iPhone" : "Instalar app"}
+                  </button>
+                  <a className="btn ghost full" href={webUrl}>
+                    <ExternalLink size={17} />
+                    Abrir versión web
+                  </a>
+                </div>
+
+                <div className="divider" />
+              </>
+            )}
 
             <div className="form-grid">
               <label>
