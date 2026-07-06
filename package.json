@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
+    "admin:super": "node scripts/createSuperAdmin.mjs",
     "seed:firebase": "node scripts/seedFirebase.mjs",
     "debug:firestore": "node scripts/debugFirestore.mjs"
   },
