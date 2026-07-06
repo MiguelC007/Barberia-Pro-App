@@ -16,9 +16,9 @@ interface AuthContextValue {
   role: SessionUser["role"];
   isAuthenticated: boolean;
   isReady: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  loginClient: (name: string, phone?: string) => void;
-  continueAsGuest: () => void;
+  login: (credentials: LoginCredentials) => Promise<SessionUser>;
+  loginClient: (name: string, phone?: string) => SessionUser;
+  continueAsGuest: () => SessionUser;
   logout: () => void;
 }
 
@@ -44,17 +44,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         saveSession(session);
         upsertUser(toAppUser(session));
         setUser(session);
+        return session;
       },
       loginClient(name, phone) {
         const session = createClientSession(name, phone);
         saveSession(session);
         upsertUser(toAppUser(session));
         setUser(session);
+        return session;
       },
       continueAsGuest() {
         const session = createGuestSession();
         saveSession(session);
         setUser(session);
+        return session;
       },
       logout() {
         clearSession();
