@@ -4,6 +4,7 @@ import { AppointmentCard } from "../components/AppointmentCard";
 import { BarberCard, barberStatusLabel } from "../components/BarberCard";
 import { useAuth } from "../context/AuthContext";
 import { useLiveNow } from "../hooks/useLiveNow";
+import { startAppointmentNow } from "../services/appointmentService";
 import { setBarberStatus } from "../services/barberService";
 import { useAppData } from "../services/localStore";
 import { callReservedTicket, cancelTicket, finishServiceForBarber, skipTicket, startServiceForBarber, takeNextForBarber } from "../services/queueService";
@@ -38,6 +39,10 @@ export default function BarberPanel() {
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "No se pudo completar la acción.");
     }
+  }
+
+  function canStartAppointmentNow(status: string): boolean {
+    return ["scheduled", "confirmed", "checked_in"].includes(status) && !currentTicket;
   }
 
   if (!selectedBarber) {
@@ -137,7 +142,19 @@ export default function BarberPanel() {
 
         <div className="stack">
           {appointments.length ? appointments.map((appointment) => (
-            <AppointmentCard appointment={appointment} state={state} key={appointment.id} />
+            <AppointmentCard
+              appointment={appointment}
+              state={state}
+              key={appointment.id}
+              action={
+                canStartAppointmentNow(appointment.status) ? (
+                  <button className="btn primary" onClick={() => safeAction(() => startAppointmentNow(appointment.id), "Cita enviada a atención.")}>
+                    <Play size={17} />
+                    Atender ahora
+                  </button>
+                ) : null
+              }
+            />
           )) : <div className="empty-state">Este barbero no tiene citas asignadas.</div>}
         </div>
       </section>
