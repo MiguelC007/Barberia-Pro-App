@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, ExternalLink, Save, Share2 } from "lucide-react";
-import { MediaCapturePanel } from "../components/MediaCapturePanel";
-import { MediaReferenceList } from "../components/MediaReferenceList";
 import { TicketCard } from "../components/TicketCard";
 import { useLiveNow } from "../hooks/useLiveNow";
 import { createQueueTicket, getActiveTicket, updateTicketDetails } from "../services/queueService";
-import { attachMediaToTicket } from "../services/mediaService";
 import { useAppData } from "../services/localStore";
-import type { MediaReference } from "../types";
+import { isActiveTicketStatus, isClosedTicketStatus, normalizeTicketStatus } from "../utils/queueTimeline";
+import { getTicketClientLabel, getTicketCodeLabel } from "../utils/tickets";
+
+const ACTIVE_TICKET_KEY = "spencer_barber_shop_active_ticket_v1";
+const LAST_CALL_NOTICE_KEY = "spencer_barber_shop_last_call_notice_v1";
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -22,9 +23,55 @@ function isStandaloneMode(): boolean {
   return window.matchMedia("(display-mode: standalone)").matches || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
 }
 
+function clearSavedActiveTicket(ticketId?: string | null): void {
+  const current = localStorage.getItem(ACTIVE_TICKET_KEY);
+  if (!ticketId || current === ticketId) {
+    localStorage.removeItem(ACTIVE_TICKET_KEY);
+  }
+}
+
+function playCallBeep(): void {
+  try {
+    const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const context = new AudioContextConstructor();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    gain.gain.value = 0.08;
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.35);
+  } catch {
+    // Algunos navegadores bloquean audio automático si el cliente no interactuó con la página.
+  }
+}
+
+function announceCall(message: string): void {
+  if ("vibrate" in navigator) {
+    navigator.vibrate([250, 120, 250]);
+  }
+
+  playCallBeep();
+
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = "es-HN";
+    utterance.rate = 0.92;
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
 export default function TicketEntryPage() {
   const state = useAppData();
   const now = useLiveNow(30000);
+  const creatingTicketRef = useRef(false);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
   const [phone, setPhone] = useState("");
@@ -59,31 +106,72 @@ export default function TicketEntryPage() {
     };
   }, []);
 
-  useEffect(() => {
-    try {
-      const firstServiceId = state.services.find((service) => service.active)?.id;
-      const existing = getActiveTicket();
-      const ticket =
-        existing ||
-        createQueueTicket({
-          clientName: "",
-          serviceId: firstServiceId,
-          source: "qr",
-          reuseDeviceTicket: true
-        });
-
-      setTicketId(ticket.id);
-      setClientName(ticket.clientName);
-      setPhone(ticket.clientPhone || ticket.whatsapp || "");
-      setServiceId(ticket.serviceId);
-      setPreferredBarberId(ticket.preferredBarberId || "");
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "No se pudo generar tu ticket.");
-    }
-  }, [state.services]);
-
   const ticket = useMemo(() => state.queue.find((item) => item.id === ticketId) || getActiveTicket(), [state.queue, ticketId]);
   const webUrl = useMemo(() => window.location.origin, []);
+
+  useEffect(() => {
+    if (!state.services.some((service) => service.active) || creatingTicketRef.current) return;
+
+    try {
+      const existing = getActiveTicket();
+      if (existing && isActiveTicketStatus(existing.status)) {
+        setTicketId(existing.id);
+        setClientName(existing.clientName);
+        setPhone(existing.clientPhone || existing.whatsapp || "");
+        setServiceId(existing.serviceId);
+        setPreferredBarberId(existing.preferredBarberId || "");
+        return;
+      }
+
+      if (existing && isClosedTicketStatus(normalizeTicketStatus(existing.status))) {
+        clearSavedActiveTicket(existing.id);
+      }
+
+      const firstServiceId = state.services.find((service) => service.active)?.id;
+      creatingTicketRef.current = true;
+      const newTicket = createQueueTicket({
+        clientName: "",
+        serviceId: firstServiceId,
+        source: "qr",
+        reuseDeviceTicket: true
+      });
+
+      setTicketId(newTicket.id);
+      setClientName(newTicket.clientName);
+      setPhone(newTicket.clientPhone || newTicket.whatsapp || "");
+      setServiceId(newTicket.serviceId);
+      setPreferredBarberId(newTicket.preferredBarberId || "");
+      creatingTicketRef.current = false;
+    } catch (err) {
+      creatingTicketRef.current = false;
+      setMessage(err instanceof Error ? err.message : "No se pudo generar tu ticket.");
+    }
+  }, [state.services, state.queue]);
+
+  useEffect(() => {
+    if (!ticket) return;
+    const status = normalizeTicketStatus(ticket.status);
+
+    if (isClosedTicketStatus(status)) {
+      clearSavedActiveTicket(ticket.id);
+      setTicketId(null);
+      setMessage("Tu atención fue finalizada. Puedes escanear nuevamente para tomar otro turno.");
+      return;
+    }
+
+    if (!["next", "called", "in_service"].includes(status)) return;
+
+    const noticeId = `${ticket.id}-${ticket.calledAt || ticket.startedAt || status}`;
+    if (localStorage.getItem(LAST_CALL_NOTICE_KEY) === noticeId) return;
+
+    localStorage.setItem(LAST_CALL_NOTICE_KEY, noticeId);
+    const barber = state.barbers.find((item) => item.id === ticket.assignedBarberId);
+    const barberText = barber ? `con ${barber.name}` : "con tu barbero";
+    const clientText = getTicketClientLabel(ticket);
+    const codeText = getTicketCodeLabel(ticket);
+    announceCall(`${clientText}, ticket ${codeText}, pasa ${barberText}.`);
+    setMessage(`${clientText}, te están llamando. Pasa ${barberText}.`);
+  }, [ticket, state.barbers]);
 
   async function installApp() {
     if (!installPrompt) {
@@ -113,12 +201,6 @@ export default function TicketEntryPage() {
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "No se pudo actualizar el ticket.");
     }
-  }
-
-  async function addReference(media: MediaReference[]) {
-    if (!ticket) return;
-    attachMediaToTicket(ticket.id, media);
-    setMessage("Referencia agregada al ticket.");
   }
 
   return (
@@ -214,9 +296,6 @@ export default function TicketEntryPage() {
               Guardar datos del ticket
             </button>
 
-            <div className="divider" />
-            <MediaCapturePanel onAdd={addReference} labels={{ photo: "Tomar foto", video: "Grabar video", file: "Subir referencia" }} />
-            <MediaReferenceList items={ticket.mediaReferences || []} title="Referencia del cliente" />
             {message && <div className="alert info">{message}</div>}
           </section>
         )}
