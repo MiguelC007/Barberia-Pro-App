@@ -83,7 +83,7 @@ export default function TicketEntryPage() {
   }, [state.services]);
 
   const ticket = useMemo(() => state.queue.find((item) => item.id === ticketId) || getActiveTicket(), [state.queue, ticketId]);
-  const webUrl = useMemo(() => `${window.location.origin}/turno`, []);
+  const webUrl = useMemo(() => window.location.origin, []);
 
   async function installApp() {
     if (!installPrompt) {
