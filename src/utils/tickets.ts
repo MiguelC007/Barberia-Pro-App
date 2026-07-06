@@ -2,7 +2,7 @@ import type { QueueItem } from "../types";
 
 function ticketOrder(item: Pick<QueueItem, "dailySequenceNumber">): string {
   const order = item.dailySequenceNumber || 1;
-  return `#${order}`;
+  return `#${String(order).padStart(3, "0")}`;
 }
 
 export function getTicketClientLabel(item: Pick<QueueItem, "clientName" | "dailySequenceNumber">): string {
@@ -12,5 +12,5 @@ export function getTicketClientLabel(item: Pick<QueueItem, "clientName" | "daily
 }
 
 export function getTicketCodeLabel(item: Pick<QueueItem, "ticketCode" | "dailySequenceNumber">): string {
-  return item.ticketCode || `Ticket ${ticketOrder(item)}`;
+  return `Turno ${ticketOrder(item)}`;
 }
