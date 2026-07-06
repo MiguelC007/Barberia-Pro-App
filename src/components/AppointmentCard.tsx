@@ -15,7 +15,15 @@ function appointmentStatusLabel(status: AppointmentStatus): string {
   return labels[status];
 }
 
-export function AppointmentCard({ appointment, state }: { appointment: Appointment; state: AppState }) {
+export function AppointmentCard({
+  appointment,
+  state,
+  action
+}: {
+  appointment: Appointment;
+  state: AppState;
+  action?: React.ReactNode;
+}) {
   const service = state.services.find((item) => item.id === appointment.serviceId);
   const barber = state.barbers.find((item) => item.id === appointment.barberId);
 
@@ -29,6 +37,7 @@ export function AppointmentCard({ appointment, state }: { appointment: Appointme
         </p>
         <small>Origen: {appointment.source}</small>
         <MediaReferenceList items={appointment.mediaReferences || []} title="Referencia del cliente" />
+        {action && <div className="barber-actions">{action}</div>}
       </div>
       <span className="badge badge-success">{appointmentStatusLabel(appointment.status)}</span>
     </article>
