@@ -1,15 +1,41 @@
 import { doc, getDoc } from "firebase/firestore";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import type { LoginCredentials, SessionUser, AppUser } from "../types";
+import { getIdTokenResult, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import type { LoginCredentials, SessionUser, AppUser, UserRole } from "../types";
 import { demoUsers } from "../data/demoSeed";
 import { firebaseAuth, firestoreDb, isFirebaseConfigured } from "../config/firebase";
 import { createId } from "../utils/id";
 
 const SESSION_KEY = "spencer_barber_shop_session_v1";
+const VALID_ROLES: UserRole[] = ["super_admin", "owner", "barber", "client", "guest"];
 
 function findLocalUser(credentials: LoginCredentials) {
   const email = credentials.email.trim().toLowerCase();
   return demoUsers.find((user) => user.email?.toLowerCase() === email && user.password === credentials.password);
+}
+
+function isValidRole(value: unknown): value is UserRole {
+  return typeof value === "string" && VALID_ROLES.includes(value as UserRole);
+}
+
+async function sessionFromClaims(user: User, fallbackEmail: string): Promise<SessionUser | null> {
+  const token = await getIdTokenResult(user, true);
+  const role = token.claims.role;
+
+  if (!isValidRole(role)) {
+    return null;
+  }
+
+  return {
+    id: user.uid,
+    name: typeof token.claims.name === "string" ? token.claims.name : user.displayName || "Miguel Carranza",
+    email: user.email || fallbackEmail,
+    phone: typeof token.claims.phone === "string" ? token.claims.phone : user.phoneNumber || "",
+    role,
+    barberId: typeof token.claims.barberId === "string" ? token.claims.barberId : null,
+    createdAt: Date.now(),
+    active: true,
+    isDemo: false
+  };
 }
 
 export function isUsingDemoAuth(): boolean {
@@ -26,27 +52,37 @@ export async function loginWithEmail(credentials: LoginCredentials): Promise<Ses
 
     try {
       const credential = await signInWithEmailAndPassword(firebaseAuth, email, credentials.password);
-      const profileSnap = await getDoc(doc(firestoreDb, "users", credential.user.uid));
-      if (!profileSnap.exists()) {
-        throw new Error("El usuario existe en Firebase Auth, pero no tiene perfil con rol en Firestore.");
+
+      try {
+        const profileSnap = await getDoc(doc(firestoreDb, "users", credential.user.uid));
+        if (profileSnap.exists()) {
+          const profile = profileSnap.data() as Partial<AppUser>;
+          if (!profile.role || !profile.name) {
+            throw new Error("El perfil del usuario no tiene nombre o rol configurado.");
+          }
+
+          return {
+            id: credential.user.uid,
+            name: profile.name,
+            email: credential.user.email || email,
+            phone: profile.phone || credential.user.phoneNumber || "",
+            role: profile.role,
+            barberId: profile.barberId ?? null,
+            createdAt: typeof profile.createdAt === "number" ? profile.createdAt : Date.now(),
+            active: profile.active !== false,
+            isDemo: false
+          };
+        }
+      } catch (profileError) {
+        console.warn("No se pudo leer el perfil en Firestore. Intentando claims de Firebase Auth.", profileError);
       }
 
-      const profile = profileSnap.data() as Partial<AppUser>;
-      if (!profile.role || !profile.name) {
-        throw new Error("El perfil del usuario no tiene nombre o rol configurado.");
+      const claimSession = await sessionFromClaims(credential.user, email);
+      if (claimSession) {
+        return claimSession;
       }
 
-      return {
-        id: credential.user.uid,
-        name: profile.name,
-        email: credential.user.email || email,
-        phone: profile.phone || credential.user.phoneNumber || "",
-        role: profile.role,
-        barberId: profile.barberId ?? null,
-        createdAt: typeof profile.createdAt === "number" ? profile.createdAt : Date.now(),
-        active: profile.active !== false,
-        isDemo: false
-      };
+      throw new Error("Tu usuario existe, pero falta asignarle rol super_admin, owner o barber.");
     } catch (error) {
       const fallback = findLocalUser(credentials);
       if (fallback) {
