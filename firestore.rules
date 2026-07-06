@@ -54,6 +54,10 @@ service cloud.firestore {
       return value is string && value.size() > 0 && value.size() <= max;
     }
 
+    function validOptionalPublicText(value, max) {
+      return value == null || (value is string && value.size() <= max);
+    }
+
     function validOptionalText(data, key, max) {
       return !(key in data) || data[key] == null || (data[key] is string && data[key].size() <= max);
     }
@@ -138,7 +142,7 @@ service cloud.firestore {
         "cancelledAt",
         "mediaReferences"
       ]) &&
-        validPublicText(data.clientName, 120) &&
+        validOptionalPublicText(data.clientName, 120) &&
         data.serviceId is string &&
         validStatus(data.status, ["waiting", "next", "called", "in_service", "completed", "done", "skipped", "cancelled"]) &&
         data.joinedAt is number &&
@@ -154,6 +158,23 @@ service cloud.firestore {
         (!("position" in data) || data.position is number) &&
         (!("source" in data) || data.source in ["qr", "manual", "client", "admin"]) &&
         (!("estimatedDurationMinutes" in data) || data.estimatedDurationMinutes is number);
+    }
+
+    function validPublicQueueUpdate() {
+      return resource.data.status == "waiting" &&
+        request.resource.data.status == "waiting" &&
+        request.resource.data.assignedBarberId == null &&
+        changedOnly([
+          "clientName",
+          "clientPhone",
+          "whatsapp",
+          "serviceId",
+          "serviceName",
+          "estimatedDurationMinutes",
+          "preferredBarberId",
+          "note",
+          "notes"
+        ]);
     }
 
     function validAppointment(data) {
@@ -243,7 +264,25 @@ service cloud.firestore {
       allow read: if true;
       allow create: if validQueue(request.resource.data) && request.resource.data.status == "waiting";
       allow update: if validQueue(request.resource.data) &&
-        (isOwner() || (request.resource.data.assignedBarberId == barberId() && changedOnly(["assignedBarberId", "status", "calledAt", "startedAt", "finishedAt"])));
+        (
+          isOwner() ||
+          validPublicQueueUpdate() ||
+          (
+            request.resource.data.assignedBarberId == barberId() &&
+            changedOnly([
+              "assignedBarberId",
+              "status",
+              "calledAt",
+              "startedAt",
+              "serviceStartedAt",
+              "finishedAt",
+              "serviceEndedAt",
+              "completedAt",
+              "skippedAt",
+              "cancelledAt"
+            ])
+          )
+        );
       allow delete: if isOwner();
     }
 
