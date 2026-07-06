@@ -177,6 +177,16 @@ service cloud.firestore {
         ]);
     }
 
+    function validStaffQueueCreate() {
+      return isOwner() ||
+        (
+          signedIn() &&
+          role() == "barber" &&
+          request.resource.data.assignedBarberId == barberId() &&
+          request.resource.data.status in ["waiting", "next", "called", "in_service"]
+        );
+    }
+
     function validAppointment(data) {
       return hasOnly(data, [
         "id",
@@ -262,7 +272,8 @@ service cloud.firestore {
 
     match /queue/{queueId} {
       allow read: if true;
-      allow create: if validQueue(request.resource.data) && request.resource.data.status == "waiting";
+      allow create: if validQueue(request.resource.data) &&
+        (request.resource.data.status == "waiting" || validStaffQueueCreate());
       allow update: if validQueue(request.resource.data) &&
         (
           isOwner() ||
