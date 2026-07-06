@@ -14,6 +14,7 @@ type CollectionKey = keyof Pick<AppState, "users" | "barbers" | "services" | "in
 type AppStateUpdater = (state: AppState) => AppState;
 
 const COLLECTION_KEYS: CollectionKey[] = ["users", "barbers", "services", "inspiration", "queue", "appointments", "payments"];
+const PROTECTED_EMPTY_COLLECTIONS: CollectionKey[] = ["users", "barbers", "services", "inspiration"];
 
 const remoteIds = new Map<CollectionKey, Set<string>>(
   COLLECTION_KEYS.map((key) => [key, new Set<string>()])
@@ -35,6 +36,10 @@ function cloneSet(source?: Set<string>): Set<string> {
 
 function normalizeDocs<T extends DocumentData>(items?: T[]): T[] {
   return (items || []).map((item) => JSON.parse(JSON.stringify(item)) as T);
+}
+
+function isProtectedEmptyCollection(key: CollectionKey): boolean {
+  return PROTECTED_EMPTY_COLLECTIONS.includes(key);
 }
 
 async function syncCollection(db: Firestore, key: CollectionKey, items: Array<{ id: string }>): Promise<void> {
@@ -107,7 +112,7 @@ export function startCloudSync(input: { applyState: (updater: AppStateUpdater) =
   initialized = true;
 
   const settingsListener = onSnapshot(collection(db, "settings"), (snapshot) => {
-    if (!applyRemoteState) return;
+    if (!applyRemoteState || snapshot.empty) return;
 
     const settings = snapshot.docs.reduce<Record<string, DocumentData>>((accumulator, entry) => {
       accumulator[entry.id] = entry.data();
@@ -123,12 +128,14 @@ export function startCloudSync(input: { applyState: (updater: AppStateUpdater) =
 
   const collectionListeners = COLLECTION_KEYS.map((key) =>
     onSnapshot(collection(db, collectionPath(key)), (snapshot) => {
-      remoteIds.set(
-        key,
-        new Set(snapshot.docs.map((entry) => entry.id))
-      );
+      const ids = new Set(snapshot.docs.map((entry) => entry.id));
+      remoteIds.set(key, ids);
 
       if (!applyRemoteState) return;
+
+      if (snapshot.empty && isProtectedEmptyCollection(key)) {
+        return;
+      }
 
       const items = snapshot.docs.map((entry) => entry.data()) as AppState[CollectionKey];
       applyRemoteState((state) => ({
