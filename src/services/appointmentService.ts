@@ -1,4 +1,4 @@
-import type { Appointment, QueueItem, SessionUser } from "../types";
+import type { Appointment, AppointmentStatus, QueueItem, SessionUser } from "../types";
 import { getAppState, mutateAppState } from "./localStore";
 import { syncQueueItemNow } from "./cloudSync";
 import { createId } from "../utils/id";
@@ -89,6 +89,7 @@ export function createAppointment(input: {
   time: string;
   source: "manual" | "bot" | "client";
   session?: SessionUser | null;
+  status?: AppointmentStatus;
 }): Appointment {
   const state = getAppState();
   const service = state.services.find((item) => item.id === input.serviceId && item.active);
@@ -128,7 +129,7 @@ export function createAppointment(input: {
     barberId: barber.id,
     date: input.date,
     time: input.time,
-    status: "scheduled",
+    status: input.status || "scheduled",
     source: input.source,
     createdAt: Date.now(),
     checkedInAt: null,
@@ -147,12 +148,37 @@ export function createAppointment(input: {
   return appointment;
 }
 
+export function approveAppointment(appointmentId: string): void {
+  mutateAppState((state) => ({
+    ...state,
+    appointments: state.appointments.map((appointment) =>
+      appointment.id === appointmentId
+        ? { ...appointment, status: "scheduled" }
+        : appointment
+    )
+  }));
+}
+
+export function cancelAppointment(appointmentId: string): void {
+  mutateAppState((state) => ({
+    ...state,
+    appointments: state.appointments.map((appointment) =>
+      appointment.id === appointmentId
+        ? { ...appointment, status: "cancelled" }
+        : appointment
+    )
+  }));
+}
+
 export function startAppointmentNow(appointmentId: string): QueueItem {
   const current = getAppState();
   const appointment = current.appointments.find((item) => item.id === appointmentId);
 
   if (!appointment) {
     throw new Error("No se encontró la cita.");
+  }
+  if (appointment.status === "pending") {
+    throw new Error("Primero aprueba la cita después de revisar el comprobante de pago.");
   }
   if (isClosedAppointment(appointment.status)) {
     throw new Error("Esta cita ya está cerrada.");
