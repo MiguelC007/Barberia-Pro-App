@@ -4,7 +4,7 @@ import { AppointmentCard } from "../components/AppointmentCard";
 import { BarberCard, barberStatusLabel } from "../components/BarberCard";
 import { useAuth } from "../context/AuthContext";
 import { useLiveNow } from "../hooks/useLiveNow";
-import { startAppointmentNow } from "../services/appointmentService";
+import { approveAppointment, cancelAppointment, startAppointmentNow } from "../services/appointmentService";
 import { setBarberStatus } from "../services/barberService";
 import { useAppData } from "../services/localStore";
 import { callReservedTicket, cancelTicket, finishServiceForBarber, skipTicket, startServiceForBarber, takeNextForBarber } from "../services/queueService";
@@ -147,12 +147,26 @@ export default function BarberPanel() {
               state={state}
               key={appointment.id}
               action={
-                canStartAppointmentNow(appointment.status) ? (
-                  <button className="btn primary" onClick={() => safeAction(() => startAppointmentNow(appointment.id), "Cita enviada a atención.")}>
-                    <Play size={17} />
-                    Atender ahora
-                  </button>
-                ) : null
+                <>
+                  {appointment.status === "pending" && (
+                    <button className="btn success" onClick={() => safeAction(() => approveAppointment(appointment.id), "Cita aprobada. Pago validado.")}>
+                      <SquareCheckBig size={17} />
+                      Aprobar cita
+                    </button>
+                  )}
+                  {canStartAppointmentNow(appointment.status) && (
+                    <button className="btn primary" onClick={() => safeAction(() => startAppointmentNow(appointment.id), "Cita enviada a atención.")}>
+                      <Play size={17} />
+                      Atender ahora
+                    </button>
+                  )}
+                  {!["completed", "cancelled", "no_show"].includes(appointment.status) && (
+                    <button className="btn danger" onClick={() => safeAction(() => cancelAppointment(appointment.id), "Cita cancelada correctamente.")}>
+                      <XCircle size={17} />
+                      Cancelar cita
+                    </button>
+                  )}
+                </>
               }
             />
           )) : <div className="empty-state">Este barbero no tiene citas asignadas.</div>}
