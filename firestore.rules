@@ -300,7 +300,7 @@ service cloud.firestore {
     match /appointments/{appointmentId} {
       allow read: if signedIn();
       allow create: if validAppointment(request.resource.data) &&
-        request.resource.data.status == "scheduled" &&
+        request.resource.data.status in ["pending", "scheduled"] &&
         request.resource.data.source in ["bot", "client", "manual"];
       allow update: if validAppointment(request.resource.data) &&
         (isOwner() || request.resource.data.barberId == barberId());
