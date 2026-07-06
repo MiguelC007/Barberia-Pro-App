@@ -97,12 +97,19 @@ async function main() {
   const uid = result.user.uid;
   const email = superAdmin.email.trim().toLowerCase();
   const createdAt = Date.now();
+  const phone = superAdmin.phone || "50400000000";
+
+  await auth.setCustomUserClaims(uid, {
+    role: "super_admin",
+    name: superAdmin.name.trim(),
+    phone
+  });
 
   const profile = {
     id: uid,
     name: superAdmin.name.trim(),
     email,
-    phone: superAdmin.phone || "50400000000",
+    phone,
     role: "super_admin",
     barberId: null,
     createdAt,
@@ -113,10 +120,11 @@ async function main() {
 
   console.log("Superadmin listo.");
   console.log(`Auth: ${result.reused ? "actualizado" : "creado"}`);
+  console.log("Custom claims: role=super_admin");
   console.log(`Email: ${email}`);
   console.log(`UID: ${uid}`);
   console.log(`Firestore: users/${uid}`);
-  console.log("Ya puedes iniciar sesion en /login con ese correo y password.");
+  console.log("Cierra sesion/usa incognito y vuelve a iniciar sesion para refrescar claims.");
 }
 
 main().catch((error) => {
