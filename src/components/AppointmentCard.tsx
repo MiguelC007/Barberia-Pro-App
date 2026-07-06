@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Appointment, AppState, AppointmentStatus } from "../types";
 import { MediaReferenceList } from "./MediaReferenceList";
 
@@ -22,7 +23,7 @@ export function AppointmentCard({
 }: {
   appointment: Appointment;
   state: AppState;
-  action?: React.ReactNode;
+  action?: ReactNode;
 }) {
   const service = state.services.find((item) => item.id === appointment.serviceId);
   const barber = state.barbers.find((item) => item.id === appointment.barberId);
