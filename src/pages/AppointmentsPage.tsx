@@ -24,6 +24,8 @@ export default function AppointmentsPage() {
   const [message, setMessage] = useState("");
   const [pendingMedia, setPendingMedia] = useState<MediaReference[]>([]);
 
+  const clientNeedsApproval = role === "client" || role === "guest";
+
   const visibleAppointments = useMemo(() => {
     if (canViewAllAppointments(role)) return state.appointments;
     if (role === "barber" && user?.barberId) return state.appointments.filter((item) => item.barberId === user.barberId);
@@ -56,6 +58,10 @@ export default function AppointmentsPage() {
         throw new Error("Selecciona servicio y un horario sugerido.");
       }
 
+      if (clientNeedsApproval && !pendingMedia.length) {
+        throw new Error("Para reservar una cita debes adjuntar comprobante de pago del servicio.");
+      }
+
       const appointment = createAppointment({
         clientName,
         clientPhone: phone,
@@ -63,8 +69,9 @@ export default function AppointmentsPage() {
         barberId: finalBarberId,
         date,
         time,
-        source: role === "client" || role === "guest" ? "client" : "manual",
-        session: user
+        source: clientNeedsApproval ? "client" : "manual",
+        session: user,
+        status: clientNeedsApproval ? "pending" : "scheduled"
       });
 
       if (pendingMedia.length) {
@@ -72,7 +79,11 @@ export default function AppointmentsPage() {
         setPendingMedia([]);
       }
 
-      setMessage("Cita guardada correctamente.");
+      setMessage(
+        clientNeedsApproval
+          ? "Solicitud enviada. La barbería revisará tu comprobante y aprobará la cita."
+          : "Cita guardada correctamente."
+      );
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "No se pudo guardar la cita.");
     }
@@ -91,6 +102,12 @@ export default function AppointmentsPage() {
             <p>Reserva un horario sin chocar con turnos activos ni citas ya programadas.</p>
           </div>
         </div>
+
+        {clientNeedsApproval && (
+          <div className="alert info">
+            Para confirmar una cita debes pagar el servicio por adelantado y adjuntar el comprobante. La barbería aprobará la cita al validar el pago.
+          </div>
+        )}
 
         <div className="form-grid">
           <label>
@@ -153,10 +170,10 @@ export default function AppointmentsPage() {
         </section>
 
         <div className="divider" />
-        <MediaCapturePanel onAdd={addPendingMedia} labels={{ photo: "Tomar foto", video: "Grabar video", file: "Subir referencia" }} />
-        <MediaReferenceList items={pendingMedia} title="Referencia para la cita" />
+        <MediaCapturePanel onAdd={addPendingMedia} labels={{ photo: "Foto del comprobante", video: "Grabar comprobante", file: "Subir comprobante" }} />
+        <MediaReferenceList items={pendingMedia} title="Comprobante de pago" />
 
-        <button className="btn primary" onClick={handleCreate}>Confirmar cita</button>
+        <button className="btn primary" onClick={handleCreate}>{clientNeedsApproval ? "Enviar solicitud de cita" : "Confirmar cita"}</button>
         {message && <div className="alert info">{message}</div>}
       </section>
 
