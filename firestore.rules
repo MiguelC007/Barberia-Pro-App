@@ -107,41 +107,7 @@ service cloud.firestore {
     }
 
     function validQueue(data) {
-      return hasOnly(data, [
-        "id",
-        "barberShopId",
-        "ticketCode",
-        "dailySequenceNumber",
-        "clientId",
-        "clientName",
-        "clientPhone",
-        "whatsapp",
-        "deviceId",
-        "source",
-        "serviceId",
-        "serviceName",
-        "estimatedDurationMinutes",
-        "preferredBarberId",
-        "assignedBarberId",
-        "status",
-        "note",
-        "notes",
-        "position",
-        "createdAt",
-        "waitStartedAt",
-        "estimatedStartAt",
-        "estimatedEndAt",
-        "joinedAt",
-        "calledAt",
-        "startedAt",
-        "serviceStartedAt",
-        "serviceEndedAt",
-        "finishedAt",
-        "completedAt",
-        "skippedAt",
-        "cancelledAt",
-        "mediaReferences"
-      ]) &&
+      return hasOnly(data, ["id", "barberShopId", "ticketCode", "dailySequenceNumber", "clientId", "clientName", "clientPhone", "whatsapp", "deviceId", "source", "serviceId", "serviceName", "estimatedDurationMinutes", "preferredBarberId", "assignedBarberId", "status", "note", "notes", "position", "createdAt", "waitStartedAt", "estimatedStartAt", "estimatedEndAt", "joinedAt", "calledAt", "startedAt", "serviceStartedAt", "serviceEndedAt", "finishedAt", "completedAt", "skippedAt", "cancelledAt", "mediaReferences"]) &&
         validOptionalPublicText(data.clientName, 120) &&
         data.serviceId is string &&
         validStatus(data.status, ["waiting", "next", "called", "in_service", "completed", "done", "skipped", "cancelled"]) &&
@@ -164,50 +130,16 @@ service cloud.firestore {
       return resource.data.status == "waiting" &&
         request.resource.data.status == "waiting" &&
         request.resource.data.assignedBarberId == null &&
-        changedOnly([
-          "clientName",
-          "clientPhone",
-          "whatsapp",
-          "serviceId",
-          "serviceName",
-          "estimatedDurationMinutes",
-          "preferredBarberId",
-          "note",
-          "notes"
-        ]);
+        changedOnly(["clientName", "clientPhone", "whatsapp", "serviceId", "serviceName", "estimatedDurationMinutes", "preferredBarberId", "note", "notes"]);
     }
 
     function validStaffQueueCreate() {
       return isOwner() ||
-        (
-          signedIn() &&
-          role() == "barber" &&
-          request.resource.data.assignedBarberId == barberId() &&
-          request.resource.data.status in ["waiting", "next", "called", "in_service"]
-        );
+        (signedIn() && role() == "barber" && request.resource.data.assignedBarberId == barberId() && request.resource.data.status in ["waiting", "next", "called", "in_service"]);
     }
 
     function validAppointment(data) {
-      return hasOnly(data, [
-        "id",
-        "barberShopId",
-        "clientId",
-        "clientName",
-        "clientPhone",
-        "serviceId",
-        "barberId",
-        "date",
-        "time",
-        "status",
-        "source",
-        "createdAt",
-        "checkedInAt",
-        "startedAt",
-        "completedAt",
-        "noShowAt",
-        "graceMinutes",
-        "mediaReferences"
-      ]) &&
+      return hasOnly(data, ["id", "barberShopId", "clientId", "clientName", "clientPhone", "serviceId", "barberId", "date", "time", "status", "source", "createdAt", "checkedInAt", "startedAt", "completedAt", "noShowAt", "graceMinutes", "mediaReferences"]) &&
         validPublicText(data.clientName, 120) &&
         data.serviceId is string &&
         data.barberId is string &&
@@ -217,6 +149,12 @@ service cloud.firestore {
         data.source in ["manual", "bot", "client"] &&
         data.createdAt is number &&
         validOptionalText(data, "clientPhone", 40);
+    }
+
+    function validPublicAppointmentUpdate() {
+      return resource.data.status == "pending" &&
+        request.resource.data.status == "pending" &&
+        changedOnly(["clientName", "clientPhone", "mediaReferences"]);
     }
 
     function validPayment(data) {
@@ -245,16 +183,14 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner() || (signedIn() && request.auth.uid == userId);
       allow create: if signedIn() && request.auth.uid == userId && validUser(request.resource.data);
-      allow update: if validUser(request.resource.data) &&
-        (isOwner() || (signedIn() && request.auth.uid == userId && changedOnly(["name", "phone"])));
+      allow update: if validUser(request.resource.data) && (isOwner() || (signedIn() && request.auth.uid == userId && changedOnly(["name", "phone"])));
       allow delete: if isOwner();
     }
 
     match /barbers/{barberDocId} {
       allow read: if true;
       allow create: if isOwner() && validBarber(request.resource.data);
-      allow update: if validBarber(request.resource.data) &&
-        (isOwner() || (isAssignedBarber(barberDocId) && changedOnly(["status", "currentQueueId", "currentClientName", "serviceStartedAt", "doneToday"])));
+      allow update: if validBarber(request.resource.data) && (isOwner() || (isAssignedBarber(barberDocId) && changedOnly(["status", "currentQueueId", "currentClientName", "serviceStartedAt", "doneToday"])));
       allow delete: if isOwner();
     }
 
@@ -272,38 +208,17 @@ service cloud.firestore {
 
     match /queue/{queueId} {
       allow read: if true;
-      allow create: if validQueue(request.resource.data) &&
-        (request.resource.data.status == "waiting" || validStaffQueueCreate());
+      allow create: if validQueue(request.resource.data) && (request.resource.data.status == "waiting" || validStaffQueueCreate());
       allow update: if validQueue(request.resource.data) &&
-        (
-          isOwner() ||
-          validPublicQueueUpdate() ||
-          (
-            request.resource.data.assignedBarberId == barberId() &&
-            changedOnly([
-              "assignedBarberId",
-              "status",
-              "calledAt",
-              "startedAt",
-              "serviceStartedAt",
-              "finishedAt",
-              "serviceEndedAt",
-              "completedAt",
-              "skippedAt",
-              "cancelledAt"
-            ])
-          )
-        );
+        (isOwner() || validPublicQueueUpdate() ||
+          (request.resource.data.assignedBarberId == barberId() && changedOnly(["assignedBarberId", "status", "calledAt", "startedAt", "serviceStartedAt", "finishedAt", "serviceEndedAt", "completedAt", "skippedAt", "cancelledAt"])));
       allow delete: if isOwner();
     }
 
     match /appointments/{appointmentId} {
       allow read: if signedIn();
-      allow create: if validAppointment(request.resource.data) &&
-        request.resource.data.status in ["pending", "scheduled"] &&
-        request.resource.data.source in ["bot", "client", "manual"];
-      allow update: if validAppointment(request.resource.data) &&
-        (isOwner() || request.resource.data.barberId == barberId());
+      allow create: if validAppointment(request.resource.data) && request.resource.data.status in ["pending", "scheduled"] && request.resource.data.source in ["bot", "client", "manual"];
+      allow update: if validAppointment(request.resource.data) && (isOwner() || request.resource.data.barberId == barberId() || validPublicAppointmentUpdate());
       allow delete: if isOwner();
     }
 
