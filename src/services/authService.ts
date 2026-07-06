@@ -7,6 +7,7 @@ import { createId } from "../utils/id";
 
 const SESSION_KEY = "spencer_barber_shop_session_v1";
 const VALID_ROLES: UserRole[] = ["super_admin", "owner", "barber", "client", "guest"];
+const FIRESTORE_PROFILE_TIMEOUT_MS = 1800;
 
 function findLocalUser(credentials: LoginCredentials) {
   const email = credentials.email.trim().toLowerCase();
@@ -18,7 +19,7 @@ function isValidRole(value: unknown): value is UserRole {
 }
 
 async function sessionFromClaims(user: User, fallbackEmail: string): Promise<SessionUser | null> {
-  const token = await getIdTokenResult(user, true);
+  const token = await getIdTokenResult(user);
   const role = token.claims.role;
 
   if (!isValidRole(role)) {
@@ -38,6 +39,42 @@ async function sessionFromClaims(user: User, fallbackEmail: string): Promise<Ses
   };
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timeoutId: number | undefined;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error(`${label} tardó demasiado.`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  }
+}
+
+function sessionFromProfile(user: User, fallbackEmail: string, profile: Partial<AppUser>): SessionUser {
+  if (!profile.role || !profile.name) {
+    throw new Error("El perfil del usuario no tiene nombre o rol configurado.");
+  }
+
+  return {
+    id: user.uid,
+    name: profile.name,
+    email: user.email || fallbackEmail,
+    phone: profile.phone || user.phoneNumber || "",
+    role: profile.role,
+    barberId: profile.barberId ?? null,
+    createdAt: typeof profile.createdAt === "number" ? profile.createdAt : Date.now(),
+    active: profile.active !== false,
+    isDemo: false
+  };
+}
+
 export function isUsingDemoAuth(): boolean {
   return !isFirebaseConfigured;
 }
@@ -53,33 +90,23 @@ export async function loginWithEmail(credentials: LoginCredentials): Promise<Ses
     try {
       const credential = await signInWithEmailAndPassword(firebaseAuth, email, credentials.password);
 
-      try {
-        const profileSnap = await getDoc(doc(firestoreDb, "users", credential.user.uid));
-        if (profileSnap.exists()) {
-          const profile = profileSnap.data() as Partial<AppUser>;
-          if (!profile.role || !profile.name) {
-            throw new Error("El perfil del usuario no tiene nombre o rol configurado.");
-          }
-
-          return {
-            id: credential.user.uid,
-            name: profile.name,
-            email: credential.user.email || email,
-            phone: profile.phone || credential.user.phoneNumber || "",
-            role: profile.role,
-            barberId: profile.barberId ?? null,
-            createdAt: typeof profile.createdAt === "number" ? profile.createdAt : Date.now(),
-            active: profile.active !== false,
-            isDemo: false
-          };
-        }
-      } catch (profileError) {
-        console.warn("No se pudo leer el perfil en Firestore. Intentando claims de Firebase Auth.", profileError);
-      }
-
       const claimSession = await sessionFromClaims(credential.user, email);
       if (claimSession) {
         return claimSession;
+      }
+
+      try {
+        const profileSnap = await withTimeout(
+          getDoc(doc(firestoreDb, "users", credential.user.uid)),
+          FIRESTORE_PROFILE_TIMEOUT_MS,
+          "La lectura del perfil en Firestore"
+        );
+
+        if (profileSnap.exists()) {
+          return sessionFromProfile(credential.user, email, profileSnap.data() as Partial<AppUser>);
+        }
+      } catch (profileError) {
+        console.warn("No se pudo leer el perfil en Firestore durante el login.", profileError);
       }
 
       throw new Error("Tu usuario existe, pero falta asignarle rol super_admin, owner o barber.");
