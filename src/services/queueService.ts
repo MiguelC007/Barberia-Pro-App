@@ -1,5 +1,6 @@
 import type { QueueItem, QueueSource, QueueStatus, SessionUser } from "../types";
 import { getAppState, mutateAppState } from "./localStore";
+import { syncQueueItemNow } from "./cloudSync";
 import { getNextQueueItemForBarber, sortQueueFIFO } from "../utils/fifo";
 import { createId } from "../utils/id";
 import {
@@ -16,6 +17,12 @@ import {
 const ACTIVE_TICKET_KEY = "spencer_barber_shop_active_ticket_v1";
 const DEVICE_KEY = "spencer_barber_shop_device_v1";
 const DEFAULT_BARBERSHOP_ID = "spencer-barber-shop";
+
+function syncTicket(item?: QueueItem | null): void {
+  if (item) {
+    void syncQueueItemNow(item);
+  }
+}
 
 function readActiveTicketId(): string | null {
   return localStorage.getItem(ACTIVE_TICKET_KEY);
@@ -209,6 +216,7 @@ export function createQueueTicket(input: {
     ...state,
     queue: sortQueueFIFO([...state.queue, item])
   }));
+  syncTicket(item);
 
   if (input.reuseDeviceTicket || input.source === "qr") {
     saveActiveTicketId(item.id);
@@ -258,39 +266,48 @@ export function updateTicketDetails(
   ticketId: string,
   updates: Partial<Pick<QueueItem, "clientName" | "clientPhone" | "serviceId" | "preferredBarberId" | "note" | "notes">>
 ): void {
+  let updatedTicket: QueueItem | null = null;
+
   mutateAppState((state) => ({
     ...state,
     queue: state.queue.map((item) => {
       if (item.id !== ticketId) return item;
       const service = updates.serviceId ? state.services.find((entry) => entry.id === updates.serviceId) : null;
-      return {
+      updatedTicket = {
         ...item,
         ...updates,
         whatsapp: updates.clientPhone ?? item.whatsapp,
         serviceName: service?.name || item.serviceName,
         estimatedDurationMinutes: service ? getServiceDurationMinutes(service) : item.estimatedDurationMinutes
       };
+      return updatedTicket;
     })
   }));
+
+  syncTicket(updatedTicket);
 }
 
 export function updateTicketStatus(ticketId: string, status: QueueStatus): void {
   const normalized = normalizeTicketStatus(status);
   const now = Date.now();
+  let updatedTicket: QueueItem | null = null;
 
   mutateAppState((state) => ({
     ...state,
     queue: state.queue.map((item) => {
       if (item.id !== ticketId) return item;
-      return {
+      updatedTicket = {
         ...item,
         status: normalized,
         skippedAt: normalized === "skipped" ? now : item.skippedAt,
         cancelledAt: normalized === "cancelled" ? now : item.cancelledAt,
         completedAt: normalized === "completed" ? now : item.completedAt
       };
+      return updatedTicket;
     })
   }));
+
+  syncTicket(updatedTicket);
 
   if (isClosedTicketStatus(normalized)) {
     clearActiveTicketId(ticketId);
@@ -320,24 +337,19 @@ export function takeNextForBarber(barberId: string): QueueItem {
     throw new Error("No hay clientes disponibles para este barbero.");
   }
 
-  mutateAppState((state) => ({
-    ...state,
-    queue: state.queue.map((item) =>
-      item.id === next.id
-        ? {
-            ...item,
-            status: "next",
-            assignedBarberId: barber.id
-          }
-        : item
-    )
-  }));
-
-  return {
+  const updatedTicket: QueueItem = {
     ...next,
     status: "next",
     assignedBarberId: barber.id
   };
+
+  mutateAppState((state) => ({
+    ...state,
+    queue: state.queue.map((item) => (item.id === next.id ? updatedTicket : item))
+  }));
+  syncTicket(updatedTicket);
+
+  return updatedTicket;
 }
 
 export function callReservedTicket(barberId: string): QueueItem {
@@ -350,24 +362,19 @@ export function callReservedTicket(barberId: string): QueueItem {
   }
 
   const now = Date.now();
-  mutateAppState((state) => ({
-    ...state,
-    queue: state.queue.map((item) =>
-      item.id === openTicket.id
-        ? {
-            ...item,
-            status: "called",
-            calledAt: now
-          }
-        : item
-    )
-  }));
-
-  return {
+  const updatedTicket: QueueItem = {
     ...openTicket,
     status: "called",
     calledAt: now
   };
+
+  mutateAppState((state) => ({
+    ...state,
+    queue: state.queue.map((item) => (item.id === openTicket.id ? updatedTicket : item))
+  }));
+  syncTicket(updatedTicket);
+
+  return updatedTicket;
 }
 
 export function startServiceForBarber(barberId: string): QueueItem {
@@ -379,21 +386,18 @@ export function startServiceForBarber(barberId: string): QueueItem {
 
   const reservedTicket = getOpenTicketForBarber(barberId) || takeNextForBarber(barberId);
   const now = Date.now();
+  const updatedTicket: QueueItem = {
+    ...reservedTicket,
+    status: "in_service",
+    assignedBarberId: barber.id,
+    calledAt: reservedTicket.calledAt || now,
+    startedAt: now,
+    serviceStartedAt: now
+  };
 
   mutateAppState((state) => ({
     ...state,
-    queue: state.queue.map((item) =>
-      item.id === reservedTicket.id
-        ? {
-            ...item,
-            status: "in_service",
-            assignedBarberId: barber.id,
-            calledAt: item.calledAt || now,
-            startedAt: now,
-            serviceStartedAt: now
-          }
-        : item
-    ),
+    queue: state.queue.map((item) => (item.id === reservedTicket.id ? updatedTicket : item)),
     barbers: state.barbers.map((item) =>
       item.id === barber.id
         ? {
@@ -406,15 +410,9 @@ export function startServiceForBarber(barberId: string): QueueItem {
         : item
     )
   }));
+  syncTicket(updatedTicket);
 
-  return {
-    ...reservedTicket,
-    status: "in_service",
-    assignedBarberId: barber.id,
-    calledAt: reservedTicket.calledAt || now,
-    startedAt: now,
-    serviceStartedAt: now
-  };
+  return updatedTicket;
 }
 
 export function callNextForBarber(barberId: string): void {
@@ -423,6 +421,7 @@ export function callNextForBarber(barberId: string): void {
 
 export function finishServiceForBarber(barberId: string): void {
   let closedTicketId: string | null = null;
+  let updatedTicket: QueueItem | null = null;
 
   mutateAppState((state) => {
     const barber = state.barbers.find((item) => item.id === barberId && item.active);
@@ -435,17 +434,17 @@ export function finishServiceForBarber(barberId: string): void {
 
     return {
       ...state,
-      queue: state.queue.map((item) =>
-        item.id === barber.currentQueueId
-          ? {
-              ...item,
-              status: "completed",
-              finishedAt: now,
-              serviceEndedAt: now,
-              completedAt: now
-            }
-          : item
-      ),
+      queue: state.queue.map((item) => {
+        if (item.id !== barber.currentQueueId) return item;
+        updatedTicket = {
+          ...item,
+          status: "completed",
+          finishedAt: now,
+          serviceEndedAt: now,
+          completedAt: now
+        };
+        return updatedTicket;
+      }),
       barbers: state.barbers.map((item) =>
         item.id === barber.id
           ? {
@@ -461,25 +460,34 @@ export function finishServiceForBarber(barberId: string): void {
     };
   });
 
+  syncTicket(updatedTicket);
+
   if (closedTicketId) {
     clearActiveTicketId(closedTicketId);
   }
 }
 
 export function releaseBarberTicket(barberId: string): void {
+  let updatedTicket: QueueItem | null = null;
+
   mutateAppState((state) => ({
     ...state,
-    queue: state.queue.map((item) =>
-      item.assignedBarberId === barberId && ["next", "called"].includes(normalizeTicketStatus(item.status))
-        ? {
-            ...item,
-            status: "waiting",
-            assignedBarberId: null,
-            calledAt: null
-          }
-        : item
-    )
+    queue: state.queue.map((item) => {
+      if (!(item.assignedBarberId === barberId && ["next", "called"].includes(normalizeTicketStatus(item.status)))) {
+        return item;
+      }
+
+      updatedTicket = {
+        ...item,
+        status: "waiting",
+        assignedBarberId: null,
+        calledAt: null
+      };
+      return updatedTicket;
+    })
   }));
+
+  syncTicket(updatedTicket);
 }
 
 export function skipTicket(ticketId: string): void {
